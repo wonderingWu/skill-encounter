@@ -1,0 +1,490 @@
+/* ── 基础样式 ────────────────────────────── */
+
+:root {
+    --primary: #6366f1;
+    --primary-hover: #4f46e5;
+    --success: #10b981;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --bg: #f8fafc;
+    --card-bg: #ffffff;
+    --text: #1e293b;
+    --text-secondary: #64748b;
+    --border: #e2e8f0;
+    --shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
+    --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.08);
+    --radius: 12px;
+    --radius-sm: 8px;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+        "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    min-height: 100vh;
+}
+
+#app {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* ── 头部 ────────────────────────────────── */
+
+.app-header {
+    text-align: center;
+    padding: 24px 0 16px;
+    flex-shrink: 0;
+}
+
+.app-header h1 {
+    font-size: 28px;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--primary), #a855f7);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.header-subtitle {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin-top: 4px;
+    display: block;
+}
+
+/* ── 页面切换 ────────────────────────────── */
+
+.page {
+    display: none;
+    flex-direction: column;
+    flex: 1;
+}
+
+.page.active {
+    display: flex;
+}
+
+/* ── 场景选择页 ──────────────────────────── */
+
+.page-intro {
+    margin-bottom: 20px;
+}
+
+.page-intro h2 {
+    font-size: 20px;
+    margin-bottom: 12px;
+}
+
+.filter-bar {
+    display: flex;
+    gap: 12px;
+}
+
+.filter-bar select {
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--card-bg);
+    font-size: 14px;
+    color: var(--text);
+    cursor: pointer;
+}
+
+.scene-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 16px;
+}
+
+.scene-card {
+    background: var(--card-bg);
+    border-radius: var(--radius);
+    padding: 20px;
+    box-shadow: var(--shadow);
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.scene-card:hover {
+    border-color: var(--primary);
+    box-shadow: var(--shadow-lg);
+    transform: translateY(-2px);
+}
+
+.scene-card .card-category {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.scene-card .card-category.interview {
+    background: #ede9fe;
+    color: #7c3aed;
+}
+
+.scene-card .card-category.speech {
+    background: #dbeafe;
+    color: #2563eb;
+}
+
+.scene-card .card-category.debate {
+    background: #fef3c7;
+    color: #d97706;
+}
+
+.scene-card h3 {
+    font-size: 18px;
+    margin-bottom: 8px;
+}
+
+.scene-card p {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.scene-card .card-meta {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.scene-card .card-meta span {
+    font-size: 12px;
+    padding: 2px 8px;
+    border-radius: 12px;
+    background: #f1f5f9;
+    color: var(--text-secondary);
+}
+
+.scene-card .card-meta .difficulty-beginner {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.scene-card .card-meta .difficulty-intermediate {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.scene-card .card-meta .difficulty-advanced {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+/* ── 练习页 ──────────────────────────────── */
+
+.practice-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 16px;
+    flex-shrink: 0;
+}
+
+.practice-info {
+    text-align: center;
+}
+
+.practice-scene-title {
+    font-weight: 600;
+    font-size: 16px;
+    display: block;
+}
+
+.practice-round {
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.btn-back,
+.btn-end {
+    padding: 6px 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--card-bg);
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.15s;
+}
+
+.btn-back:hover {
+    background: var(--bg);
+}
+
+.btn-end {
+    color: var(--danger);
+    border-color: var(--danger);
+}
+
+.btn-end:hover {
+    background: #fef2f2;
+}
+
+/* 聊天区域 */
+.chat-area {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.chat-message {
+    max-width: 85%;
+    padding: 12px 16px;
+    border-radius: var(--radius);
+    font-size: 15px;
+    line-height: 1.7;
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.chat-message.assistant {
+    align-self: flex-start;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-bottom-left-radius: 4px;
+}
+
+.chat-message.user {
+    align-self: flex-end;
+    background: var(--primary);
+    color: white;
+    border-bottom-right-radius: 4px;
+}
+
+.chat-message .msg-role {
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 4px;
+    opacity: 0.7;
+}
+
+/* 输入区域 */
+.chat-input-area {
+    display: flex;
+    gap: 8px;
+    padding: 12px 0;
+    border-top: 1px solid var(--border);
+    flex-shrink: 0;
+}
+
+.chat-input-area textarea {
+    flex: 1;
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 15px;
+    font-family: inherit;
+    resize: none;
+    outline: none;
+    transition: border-color 0.15s;
+}
+
+.chat-input-area textarea:focus {
+    border-color: var(--primary);
+}
+
+.btn-send {
+    padding: 10px 24px;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.btn-send:hover {
+    background: var(--primary-hover);
+}
+
+.btn-send:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* ── 反馈页 ──────────────────────────────── */
+
+.feedback-container {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 20px 0;
+}
+
+.feedback-container h2 {
+    text-align: center;
+    margin-bottom: 24px;
+}
+
+.feedback-score {
+    text-align: center;
+    margin-bottom: 24px;
+}
+
+.score-number {
+    font-size: 56px;
+    font-weight: 800;
+    background: linear-gradient(135deg, var(--primary), #a855f7);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.score-label {
+    display: block;
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin-top: 4px;
+}
+
+/* 维度卡片 */
+.feedback-dimensions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+.dimension-card {
+    background: var(--card-bg);
+    padding: 16px;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+}
+
+.dimension-card .dim-name {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 6px;
+}
+
+.dimension-card .dim-stars {
+    font-size: 20px;
+    margin-bottom: 6px;
+}
+
+.dimension-card .dim-comment {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+/* 亮点/改进 */
+.feedback-strengths,
+.feedback-improvements {
+    margin-bottom: 20px;
+    background: var(--card-bg);
+    padding: 16px 20px;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+}
+
+.feedback-strengths h3,
+.feedback-improvements h3 {
+    font-size: 16px;
+    margin-bottom: 10px;
+}
+
+.feedback-strengths ul,
+.feedback-improvements ul {
+    padding-left: 20px;
+}
+
+.feedback-strengths li,
+.feedback-improvements li {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+    line-height: 1.6;
+}
+
+.feedback-summary {
+    background: linear-gradient(135deg, #ede9fe, #fae8ff);
+    padding: 16px 20px;
+    border-radius: var(--radius);
+    font-size: 15px;
+    line-height: 1.7;
+    color: #5b21b6;
+    margin-bottom: 24px;
+    text-align: center;
+}
+
+.btn-primary {
+    display: block;
+    width: 100%;
+    padding: 14px;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: var(--radius);
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.btn-primary:hover {
+    background: var(--primary-hover);
+}
+
+/* ── 加载态 ──────────────────────────────── */
+
+.loading {
+    text-align: center;
+    padding: 40px;
+    color: var(--text-secondary);
+    grid-column: 1 / -1;
+}
+
+.loading::after {
+    content: "...";
+    animation: dots 1.5s steps(4, end) infinite;
+}
+
+@keyframes dots {
+    0%, 20% { content: "."; }
+    40% { content: ".."; }
+    60%, 100% { content: "..."; }
+}
+
+/* ── 响应式 ──────────────────────────────── */
+
+@media (max-width: 600px) {
+    #app { padding: 12px; }
+    .scene-grid { grid-template-columns: 1fr; }
+    .feedback-dimensions { grid-template-columns: 1fr; }
+    .app-header h1 { font-size: 24px; }
+    .score-number { font-size: 44px; }
+}

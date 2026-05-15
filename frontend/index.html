@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>技能奇遇 - Skill Encounter</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div id="app">
+        <!-- 顶部导航 -->
+        <header class="app-header">
+            <h1>🎯 技能奇遇</h1>
+            <span class="header-subtitle">AI 驱动的就业技能模拟练习</span>
+        </header>
+
+        <!-- 场景选择页 -->
+        <main id="scene-page" class="page active">
+            <div class="page-intro">
+                <h2>选择一个场景开始练习</h2>
+                <div class="filter-bar">
+                    <select id="category-filter">
+                        <option value="">全部类别</option>
+                        <option value="interview">面试模拟</option>
+                        <option value="speech">即兴演讲</option>
+                        <option value="debate">即兴辩论</option>
+                    </select>
+                    <select id="difficulty-filter">
+                        <option value="">全部难度</option>
+                        <option value="beginner">入门</option>
+                        <option value="intermediate">进阶</option>
+                        <option value="advanced">挑战</option>
+                    </select>
+                </div>
+            </div>
+            <div id="scene-list" class="scene-grid">
+                <div class="loading">加载场景中...</div>
+            </div>
+        </main>
+
+        <!-- 练习对话页 -->
+        <main id="practice-page" class="page">
+            <div class="practice-header">
+                <button id="btn-back" class="btn-back">← 返回</button>
+                <div class="practice-info">
+                    <span class="practice-scene-title" id="practice-scene-title"></span>
+                    <span class="practice-round" id="practice-round"></span>
+                </div>
+                <button id="btn-end" class="btn-end">结束练习</button>
+            </div>
+            <div id="chat-area" class="chat-area"></div>
+            <div class="chat-input-area">
+                <textarea id="chat-input" placeholder="输入你的回答..." rows="2"></textarea>
+                <button id="btn-send" class="btn-send">发送</button>
+            </div>
+        </main>
+
+        <!-- 反馈展示页 -->
+        <main id="feedback-page" class="page">
+            <div class="feedback-container">
+                <h2>📊 练习反馈</h2>
+                <div class="feedback-score">
+                    <span class="score-number" id="feedback-overall">-</span>
+                    <span class="score-label">综合评分</span>
+                </div>
+                <div class="feedback-dimensions" id="feedback-dimensions"></div>
+                <div class="feedback-strengths">
+                    <h3>✅ 亮点</h3>
+                    <ul id="feedback-strengths-list"></ul>
+                </div>
+                <div class="feedback-improvements">
+                    <h3>💡 改进建议</h3>
+                    <ul id="feedback-improvements-list"></ul>
+                </div>
+                <div class="feedback-summary" id="feedback-summary"></div>
+                <button id="btn-retry" class="btn-primary">再来一次</button>
+            </div>
+        </main>
+    </div>
+
+    <script src="/js/app.js"></script>
+</body>
+</html>
