@@ -1,16 +1,24 @@
-"""RAG 知识库服务 —— 基于 ChromaDB 的向量检索"""
+"""RAG 知识库服务 —— 基于 ChromaDB 的向量检索
+
+v2 改进：添加检索缓存，避免同一会话内的重复向量搜索
+"""
 
 from chromadb import PersistentClient
 from chromadb.utils import embedding_functions
 from app.config import CHROMA_PERSIST_DIR, CHROMA_COLLECTION_NAME
 from app.data.seed import SEED_DOCUMENTS
+import hashlib
 import logging
+from functools import lru_cache
 
 logger = logging.getLogger(__name__)
 
 _client: PersistentClient | None = None
 _collection = None
 _initialized = False
+
+# 检索缓存（按 query hash 缓存，最多 128 条）
+_retrieval_cache: dict[str, str] = {}
 
 # 使用 sentence-transformers 作为 embedding 函数
 # 支持中文的轻量模型
@@ -80,7 +88,13 @@ def init_knowledge_base():
 
 
 def retrieve(scene_id: str, query: str, k: int = 5) -> str:
-    """检索与查询最相关的知识片段"""
+    """检索与查询最相关的知识片段（带缓存）"""
+    # 缓存 key = query 的 hash
+    cache_key = hashlib.md5(f"{scene_id}:{query}".encode()).hexdigest()
+    if cache_key in _retrieval_cache:
+        logger.debug("RAG 缓存命中")
+        return _retrieval_cache[cache_key]
+
     collection = _get_collection()
 
     if collection.count() == 0:
@@ -105,7 +119,16 @@ def retrieve(scene_id: str, query: str, k: int = 5) -> str:
             doc_type = meta.get("type", "通用")
             context_parts.append(f"[{source}] ({doc_type})\n{doc}")
 
-        return "\n\n---\n\n".join(context_parts)
+        result = "\n\n---\n\n".join(context_parts)
+
+        # 写入缓存（LRU 简单策略：超过 128 条时清掉最早的一半）
+        if len(_retrieval_cache) >= 128:
+            keys_to_remove = list(_retrieval_cache.keys())[:64]
+            for k in keys_to_remove:
+                del _retrieval_cache[k]
+        _retrieval_cache[cache_key] = result
+
+        return result
 
     except Exception as e:
         logger.warning(f"RAG 检索异常: {e}")
