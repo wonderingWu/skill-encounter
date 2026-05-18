@@ -8,6 +8,8 @@
 5. Just-in-time RAG 注入（不从开始就带全部知识库）
 """
 
+from __future__ import annotations
+
 from openai import OpenAI
 from app.config import LLM_API_KEY, LLM_API_BASE, LLM_MODEL
 import json

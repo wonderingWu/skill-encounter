@@ -3,6 +3,8 @@
 v2 改进：添加检索缓存，避免同一会话内的重复向量搜索
 """
 
+from __future__ import annotations
+
 from chromadb import PersistentClient
 from chromadb.utils import embedding_functions
 from app.config import CHROMA_PERSIST_DIR, CHROMA_COLLECTION_NAME
