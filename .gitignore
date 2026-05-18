@@ -1,0 +1,18 @@
+# 敏感文件
+.env
+setup-env.sh
+
+# Python
+__pycache__/
+*.pyc
+*.egg-info/
+
+# ChromaDB 数据
+chroma_data/
+
+# IDE
+.vscode/
+.idea/
+
+# Docker
+*.log
