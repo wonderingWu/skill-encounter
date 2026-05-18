@@ -2,82 +2,331 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>技能奇遇 - Skill Encounter</title>
-    <link rel="stylesheet" href="/css/style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>技能奇遇</title>
+    <style>
+        :root {
+            --bg: #f5f5f7;
+            --card: #ffffff;
+            --text: #1d1d1f;
+            --text2: #86868b;
+            --accent: #0071e3;
+            --radius: 18px;
+            --shadow: 0 2px 12px rgba(0,0,0,0.04);
+            --font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "PingFang SC", sans-serif;
+        }
+
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body {
+            font-family: var(--font);
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        #app { max-width: 680px; margin:0 auto; padding: 24px 20px 60px; }
+
+        /* header */
+        .header { padding: 32px 0 8px; }
+        .header h1 { font-size: 28px; font-weight: 700; letter-spacing: -0.4px; }
+        .header p { color: var(--text2); font-size: 15px; margin-top: 4px; }
+
+        /* theme switcher */
+        .theme-bar { display:flex; gap:6px; margin: 20px 0 24px; flex-wrap:wrap; }
+        .theme-dot {
+            width: 28px; height: 28px; border-radius: 14px; cursor: pointer;
+            border: 2px solid transparent; transition: .2s;
+        }
+        .theme-dot:hover { transform: scale(1.15); }
+        .theme-dot.active { border-color: var(--text); }
+
+        /* scenario cards */
+        .scene-list { display: flex; flex-direction: column; gap: 12px; }
+        .scene-card {
+            background: var(--card); border-radius: var(--radius);
+            padding: 20px 22px; cursor: pointer; transition: .2s;
+            box-shadow: var(--shadow); border: 1.5px solid transparent;
+        }
+        .scene-card:hover { border-color: var(--accent); transform: translateY(-1px); }
+        .scene-card .card-head { display:flex; align-items:center; gap: 10px; margin-bottom: 8px; }
+        .scene-card .card-emoji { font-size: 28px; }
+        .scene-card .card-title { font-size: 17px; font-weight: 600; letter-spacing: -0.3px; }
+        .scene-card .card-desc { font-size: 14px; color: var(--text2); line-height: 1.5; }
+        .scene-card .card-tags { display:flex; gap:6px; margin-top: 10px; flex-wrap:wrap; }
+        .scene-card .card-tag {
+            font-size: 12px; padding: 3px 10px; border-radius: 20px;
+            background: #f0f0f5; color: var(--text2);
+        }
+
+        /* pages */
+        .page { display:none; }
+        .page.active { display:block; }
+
+        /* chat */
+        .practice-header {
+            display:flex; align-items:center; gap:12px; padding:12px 0; margin-bottom:16px;
+            border-bottom: 1px solid #e5e5ea;
+        }
+        .practice-header .scene-emoji { font-size: 24px; }
+        .practice-header .scene-name { font-weight:600; font-size:15px; flex:1; }
+        .practice-header .round { font-size:13px; color:var(--text2); }
+        .btn-back, .btn-end { padding:6px 14px; border-radius:20px; border:1px solid #d2d2d7;
+            background:#fff; font-size:13px; cursor:pointer; font-family:var(--font); }
+        .btn-end { color:#ff3b30; border-color:#ff3b30; }
+
+        .chat-area { display:flex; flex-direction:column; gap:16px; min-height:50vh; padding:8px 0; }
+        .msg { max-width:88%; padding:12px 16px; border-radius:18px; font-size:15px; line-height:1.6; animation: fadeUp .25s ease; }
+        @keyframes fadeUp { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+        .msg.ai { align-self:flex-start; background:#fff; border:1px solid #e5e5ea; border-bottom-left-radius:6px; }
+        .msg.user { align-self:flex-end; background:var(--accent); color:#fff; border-bottom-right-radius:6px; }
+        .msg .label { font-size:12px; opacity:.6; margin-bottom:4px; }
+
+        .chat-input { display:flex; gap:8px; padding:12px 0; position:sticky; bottom:0; background:var(--bg); }
+        .chat-input textarea { flex:1; padding:12px 16px; border:1px solid #d2d2d7; border-radius:22px;
+            font-size:15px; font-family:var(--font); resize:none; outline:none; background:#fff; }
+        .chat-input textarea:focus { border-color:var(--accent); }
+        .chat-input .btn-send { padding:10px 22px; border-radius:22px; border:none;
+            background:var(--accent); color:#fff; font-size:15px; font-weight:600; cursor:pointer; font-family:var(--font); }
+        .chat-input .btn-send:disabled { opacity:.4; }
+
+        /* feedback */
+        .feedback-card { background:var(--card); border-radius:var(--radius); padding:28px; box-shadow:var(--shadow); }
+        .fb-score { text-align:center; margin-bottom:20px; }
+        .fb-score .num { font-size:56px; font-weight:800; color:var(--accent); }
+        .fb-score .lbl { font-size:13px; color:var(--text2); }
+        .fb-dims { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:20px; }
+        .fb-dim { background:#f5f5f7; border-radius:12px; padding:14px; }
+        .fb-dim .dn { font-size:14px; font-weight:600; margin-bottom:4px; }
+        .fb-dim .ds { font-size:18px; margin-bottom:4px; }
+        .fb-dim .dc { font-size:13px; color:var(--text2); line-height:1.4; }
+        .fb-section { margin-bottom:16px; }
+        .fb-section h3 { font-size:15px; margin-bottom:8px; }
+        .fb-section ul { padding-left:20px; font-size:14px; color:var(--text2); line-height:1.8; }
+        .fb-summary { background:#f0f0f5; border-radius:12px; padding:16px; font-size:15px;
+            text-align:center; color:var(--text); line-height:1.7; margin-bottom:20px; }
+        .btn-primary { display:block; width:100%; padding:14px; border-radius:14px; border:none;
+            background:var(--accent); color:#fff; font-size:16px; font-weight:600; cursor:pointer; font-family:var(--font); }
+
+        .loading { text-align:center; padding:40px; color:var(--text2); }
+    </style>
 </head>
 <body>
-    <div id="app">
-        <!-- 顶部导航 -->
-        <header class="app-header">
-            <h1>🎯 技能奇遇</h1>
-            <span class="header-subtitle">AI 驱动的就业技能模拟练习</span>
-        </header>
+<div id="app">
 
-        <!-- 场景选择页 -->
-        <main id="scene-page" class="page active">
-            <div class="page-intro">
-                <h2>选择一个场景开始练习</h2>
-                <div class="filter-bar">
-                    <select id="category-filter">
-                        <option value="">全部类别</option>
-                        <option value="interview">面试模拟</option>
-                        <option value="speech">即兴演讲</option>
-                        <option value="debate">即兴辩论</option>
-                    </select>
-                    <select id="difficulty-filter">
-                        <option value="">全部难度</option>
-                        <option value="beginner">入门</option>
-                        <option value="intermediate">进阶</option>
-                        <option value="advanced">挑战</option>
-                    </select>
-                </div>
-            </div>
-            <div id="scene-list" class="scene-grid">
-                <div class="loading">加载场景中...</div>
-            </div>
-        </main>
+<!-- header -->
+<div class="header">
+    <h1>🎯 技能奇遇</h1>
+    <p id="header-sub">选一个你脑子里想过的问题</p>
+</div>
 
-        <!-- 练习对话页 -->
-        <main id="practice-page" class="page">
-            <div class="practice-header">
-                <button id="btn-back" class="btn-back">← 返回</button>
-                <div class="practice-info">
-                    <span class="practice-scene-title" id="practice-scene-title"></span>
-                    <span class="practice-round" id="practice-round"></span>
-                </div>
-                <button id="btn-end" class="btn-end">结束练习</button>
-            </div>
-            <div id="chat-area" class="chat-area"></div>
-            <div class="chat-input-area">
-                <textarea id="chat-input" placeholder="输入你的回答..." rows="2"></textarea>
-                <button id="btn-send" class="btn-send">发送</button>
-            </div>
-        </main>
+<!-- theme dots -->
+<div class="theme-bar" id="theme-bar"></div>
 
-        <!-- 反馈展示页 -->
-        <main id="feedback-page" class="page">
-            <div class="feedback-container">
-                <h2>📊 练习反馈</h2>
-                <div class="feedback-score">
-                    <span class="score-number" id="feedback-overall">-</span>
-                    <span class="score-label">综合评分</span>
-                </div>
-                <div class="feedback-dimensions" id="feedback-dimensions"></div>
-                <div class="feedback-strengths">
-                    <h3>✅ 亮点</h3>
-                    <ul id="feedback-strengths-list"></ul>
-                </div>
-                <div class="feedback-improvements">
-                    <h3>💡 改进建议</h3>
-                    <ul id="feedback-improvements-list"></ul>
-                </div>
-                <div class="feedback-summary" id="feedback-summary"></div>
-                <button id="btn-retry" class="btn-primary">再来一次</button>
-            </div>
-        </main>
+<!-- scene list -->
+<main id="scene-page" class="page active">
+    <div class="scene-list" id="scene-list"><div class="loading">加载中…</div></div>
+</main>
+
+<!-- practice -->
+<main id="practice-page" class="page">
+    <div class="practice-header">
+        <button class="btn-back" onclick="goBack()">←</button>
+        <span class="scene-emoji" id="prac-emoji"></span>
+        <span class="scene-name" id="prac-title"></span>
+        <span class="round" id="prac-round"></span>
+        <button class="btn-end" id="btn-end" onclick="endPractice()">结束</button>
     </div>
+    <div class="chat-area" id="chat-area"></div>
+    <div class="chat-input">
+        <textarea id="chat-input" placeholder="说说你的想法…" rows="1"></textarea>
+        <button class="btn-send" id="btn-send" onclick="sendMsg()">发送</button>
+    </div>
+</main>
 
-    <script src="/js/app.js"></script>
+<!-- feedback -->
+<main id="feedback-page" class="page">
+    <div class="feedback-card">
+        <div class="fb-score"><span class="num" id="fb-score">-</span><span class="lbl">综合评估</span></div>
+        <div class="fb-dims" id="fb-dims"></div>
+        <div class="fb-section"><h3>✨ 做得好的</h3><ul id="fb-strengths"></ul></div>
+        <div class="fb-section"><h3>🔧 可以试试</h3><ul id="fb-improvements"></ul></div>
+        <div class="fb-summary" id="fb-summary"></div>
+        <button class="btn-primary" onclick="goBack()">再练一次</button>
+    </div>
+</main>
+
+</div>
+
+<script>
+// ═══════════ THEME ═══════════
+const themes = {
+    apple: {
+        '--bg':'#f5f5f7','--card':'#ffffff','--text':'#1d1d1f','--text2':'#86868b',
+        '--accent':'#0071e3','--radius':'18px','--shadow':'0 2px 12px rgba(0,0,0,0.04)',
+        label:'🍎 纯净', headerSub:'选一个你脑子里想过的问题'
+    },
+    warm: {
+        '--bg':'#fef9ef','--card':'#fffdf7','--text':'#3d3027','--text2':'#8b7e6e',
+        '--accent':'#e8875b','--radius':'20px','--shadow':'0 4px 16px rgba(180,150,120,0.08)',
+        label:'☀️ 温暖', headerSub:'慢慢来，我们都经历过这些'
+    },
+    cyber: {
+        '--bg':'#0a0e1a','--card':'#141829','--text':'#e0e6ff','--text2':'#6b7394',
+        '--accent':'#00f0ff','--radius':'4px','--shadow':'0 0 20px rgba(0,240,255,0.06)',
+        label:'⚡ 赛博', headerSub:'系统启动中…选择你的挑战'
+    },
+    jike: {
+        '--bg':'#f8f5f0','--card':'#fffdf9','--text':'#2c2c2c','--text2':'#999',
+        '--accent':'#ffc244','--radius':'16px','--shadow':'0 1px 4px rgba(0,0,0,0.04)',
+        label:'🟡 即刻', headerSub:'今天想突破什么？'
+    }
+};
+
+let currentTheme = 'apple';
+function setTheme(name) {
+    currentTheme = name;
+    const t = themes[name];
+    Object.entries(t).forEach(([k,v]) => { if(k.startsWith('--')) document.documentElement.style.setProperty(k,v); });
+    document.getElementById('header-sub').textContent = t.headerSub;
+    document.querySelectorAll('.theme-dot').forEach(d => d.classList.toggle('active', d.dataset.t === name));
+}
+function initThemes() {
+    const bar = document.getElementById('theme-bar');
+    const colors = { apple:'#0071e3', warm:'#e8875b', cyber:'#00f0ff', jike:'#ffc244' };
+    Object.entries(themes).forEach(([k,t]) => {
+        const d = document.createElement('div');
+        d.className = 'theme-dot' + (k===currentTheme?' active':'');
+        d.dataset.t = k;
+        d.style.background = colors[k];
+        d.title = t.label;
+        d.onclick = () => setTheme(k);
+        bar.appendChild(d);
+    });
+}
+
+// ═══════════ SCENES ═══════════
+const SCENES = [
+    { id:'pm-interview-beginner', emoji:'😰', title:'投了简历没回音，是不是我不够好？',
+      desc:'练一次大厂面试你就知道，不是你不行，是你没准备好。AI面试官陪你走一遍。', tags:['面试模拟','入门','找回信心'], apiId:'pm-interview-beginner' },
+    { id:'pm-interview-intermediate', emoji:'🔥', title:'群面总是插不上话，我该怎么办？',
+      desc:'压力场景专项练习。AI追问到你招架不住的程度，练完真正的群面就是小儿科。', tags:['压力面试','进阶','费米问题'], apiId:'pm-interview-intermediate' },
+    { id:'speech-improv-beginner', emoji:'🎤', title:'课堂pre紧张到脑子空白…',
+      desc:'给你一个随机话题，2分钟准备，3分钟开讲。多练几次，课堂pre再也不慌。', tags:['即兴演讲','克服紧张','表达力'], apiId:'speech-improv-beginner' },
+    { id:'debate-improv', emoji:'⚔️', title:'室友说我观点没逻辑，怎么反驳？',
+      desc:'AI给你一个辩题和持方，扮演反方与你交锋。练的是思维，长的是自信。', tags:['即兴辩论','逻辑思维','吵架不输'], apiId:'debate-improv' },
+    { id:'pm-interview-advanced', emoji:'💼', title:'学长说没实习经历面试绝对没戏…',
+      desc:'谁说没实习就不能聊？把你做过的社团/比赛/课程项目翻译成面试官爱听的故事。', tags:['高阶面试','总监面','经验转化'], apiId:'pm-interview-advanced' },
+    { id:'speech-improv-intermediate', emoji:'🗣️', title:'朋友圈发了又删，怕说错话被笑…',
+      desc:'练习在压力下清晰表达。AI教练从结构、语言、台风三维给你反馈。', tags:['进阶演讲','限时挑战','社恐友好'], apiId:'speech-improv-intermediate' },
+];
+
+// ═══════════ STATE ═══════════
+let state = { page:'scene', sessionId:null, scene:null };
+
+// ═══════════ API ═══════════
+async function api(path, opts={}) {
+    const res = await fetch(path, { headers:{'Content-Type':'application/json'}, ...opts });
+    if(!res.ok) { const e = await res.json().catch(()=>({detail:res.statusText})); throw new Error(e.detail); }
+    return res.json();
+}
+
+// ═══════════ RENDER SCENES ═══════════
+function renderScenes() {
+    const list = document.getElementById('scene-list');
+    list.innerHTML = SCENES.map(s => `
+        <div class="scene-card" onclick="start('${s.apiId}')">
+            <div class="card-head"><span class="card-emoji">${s.emoji}</span><span class="card-title">${s.title}</span></div>
+            <div class="card-desc">${s.desc}</div>
+            <div class="card-tags">${s.tags.map(t=>`<span class="card-tag">${t}</span>`).join('')}</div>
+        </div>
+    `).join('');
+}
+
+// ═══════════ PAGES ═══════════
+function showPage(name) {
+    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+    document.getElementById(name+'-page').classList.add('active');
+    state.page = name;
+}
+
+// ═══════════ PRACTICE ═══════════
+async function start(sceneId) {
+    try {
+        const data = await api('/api/practice/start', { method:'POST', body:JSON.stringify({scene_id:sceneId}) });
+        state.sessionId = data.session_id;
+        state.scene = data.scene;
+        const sc = SCENES.find(s=>s.apiId===sceneId);
+        document.getElementById('prac-emoji').textContent = sc?.emoji||'💬';
+        document.getElementById('prac-title').textContent = sc?.title||data.scene.title;
+        document.getElementById('prac-round').textContent = '第1轮';
+        document.getElementById('chat-area').innerHTML = '';
+        document.getElementById('chat-input').value = '';
+        showPage('practice');
+        addMsg('ai', data.opening_message);
+    } catch(e) { alert('出错了: '+e.message); }
+}
+
+function addMsg(role, content) {
+    const area = document.getElementById('chat-area');
+    const d = document.createElement('div');
+    d.className = 'msg '+(role==='assistant'?'ai':'user');
+    d.innerHTML = `<div class="label">${role==='assistant'?'💬 面试官':'👤 你'}</div>${esc(content)}`;
+    area.appendChild(d);
+    area.scrollTop = area.scrollHeight;
+}
+function esc(s) { const d=document.createElement('div'); d.textContent=s; return d.innerHTML.replace(/\n/g,'<br>'); }
+
+async function sendMsg() {
+    const input = document.getElementById('chat-input');
+    const msg = input.value.trim();
+    if(!msg||!state.sessionId) return;
+    const btn = document.getElementById('btn-send');
+    btn.disabled = true; btn.textContent = '...';
+    addMsg('user', msg);
+    input.value = '';
+    try {
+        const data = await api('/api/practice/message', { method:'POST', body:JSON.stringify({session_id:state.sessionId, message:msg}) });
+        addMsg('ai', data.reply);
+        document.getElementById('prac-round').textContent = '第'+data.current_round+'轮';
+    } catch(e) { addMsg('ai','⚠️ '+e.message); }
+    finally { btn.disabled = false; btn.textContent = '发送'; input.focus(); }
+}
+
+async function endPractice() {
+    if(!state.sessionId||!confirm('确定结束并查看反馈吗？')) return;
+    const btn = document.getElementById('btn-end'); btn.disabled=true; btn.textContent='评估中…';
+    try {
+        const data = await api('/api/practice/end', { method:'POST', body:JSON.stringify({session_id:state.sessionId}) });
+        state.sessionId = null;
+        showFeedback(data.feedback);
+    } catch(e) { alert(e.message); btn.disabled=false; btn.textContent='结束'; }
+}
+
+// ═══════════ FEEDBACK ═══════════
+function showFeedback(fb) {
+    showPage('feedback');
+    document.getElementById('fb-score').textContent = fb.overall_score.toFixed(1);
+    document.getElementById('fb-dims').innerHTML = fb.dimensions.map(d=>`
+        <div class="fb-dim"><div class="dn">${d.name}</div><div class="ds">${'⭐'.repeat(Math.round(d.score))}</div><div class="dc">${esc(d.comment)}</div></div>
+    `).join('');
+    document.getElementById('fb-strengths').innerHTML = fb.strengths.map(s=>`<li>${esc(s)}</li>`).join('');
+    document.getElementById('fb-improvements').innerHTML = fb.improvements.map(s=>`<li>${esc(s)}</li>`).join('');
+    document.getElementById('fb-summary').textContent = fb.summary;
+}
+
+function goBack() {
+    state.sessionId = null;
+    showPage('scene');
+    renderScenes();
+}
+
+// ═══════════ INIT ═══════════
+document.getElementById('chat-input').addEventListener('keydown', e => {
+    if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); sendMsg(); }
+});
+initThemes();
+renderScenes();
+</script>
 </body>
 </html>
