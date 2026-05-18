@@ -58,13 +58,29 @@ app.include_router(practice.router)
 async def health():
     return {"status": "ok", "service": "skill-encounter", "version": "0.1.0"}
 
-# 静态文件（前端）
-frontend_dir = PROJECT_ROOT.parent / "frontend"
-if frontend_dir.exists():
+# 静态文件（前端）—— 兼容本地和 Docker 环境
+import os as _os
+_frontend_from_env = _os.getenv("FRONTEND_DIR", "")
+if _frontend_from_env:
+    frontend_dir = Path(_frontend_from_env)
+else:
+    # 自动探测：尝试多个可能的路径
+    candidates = [
+        Path(__file__).parent.parent.parent / "frontend",  # 本地: skill-encounter/frontend
+        Path(__file__).parent.parent / "frontend",          # Docker: /app/frontend
+        Path("/app/frontend"),                              # Docker 硬编码后备
+    ]
+    frontend_dir = None
+    for d in candidates:
+        if d.exists():
+            frontend_dir = d
+            break
+
+if frontend_dir and frontend_dir.exists():
     app.mount("/", StaticFiles(directory=str(frontend_dir), html=True), name="frontend")
     logger.info(f"前端静态文件已挂载: {frontend_dir}")
 else:
-    logger.warning(f"前端目录不存在: {frontend_dir}")
+    logger.warning(f"前端目录未找到，仅 API 可用。探测路径: {candidates}")
 
 
 if __name__ == "__main__":
