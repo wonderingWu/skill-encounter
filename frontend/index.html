@@ -279,7 +279,7 @@ async function start(sceneId){
         document.getElementById('chat-area').innerHTML='';
         document.getElementById('chat-input').value='';
         showPage('practice');
-        addMsg('ai',data.opening_message);
+        addMsg('assistant',data.opening_message);
     }catch(e){alert('出错了: '+e.message);}
 }
 
@@ -298,9 +298,9 @@ async function sendMsg(){
     addMsg('user',msg);input.value='';
     try{
         const data=await api('/api/practice/message',{method:'POST',body:JSON.stringify({session_id:state.sessionId,message:msg})});
-        addMsg('ai',data.reply);
+        addMsg('assistant',data.reply);
         document.getElementById('prac-round').textContent='第'+data.current_round+'轮';
-    }catch(e){addMsg('ai','⚠️ '+e.message)}
+    }catch(e){addMsg('assistant','⚠️ '+e.message)}
     finally{btn.disabled=false;btn.textContent='发送';input.focus();}
 }
 

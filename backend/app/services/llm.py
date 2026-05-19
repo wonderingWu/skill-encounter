@@ -86,7 +86,7 @@ def generate_json(
         raise RuntimeError(f"LLM 未返回有效 JSON。原始输出: {raw[:300]}")
 
 
-# ── XML 结构化 System Prompt（Anthropic 推荐格式） ───
+# ── 双格式 System Prompt（自动适配模型） ───
 
 def build_interviewer_system_prompt(
     interviewer_role: str,
@@ -95,51 +95,63 @@ def build_interviewer_system_prompt(
     rag_context: str = "",
 ) -> str:
     """
-    使用 XML 标签分隔不同语义区域，防止长上下文中关键指令衰减。
-    rag_context 只在需要时才注入（just-in-time），而非会话开始就固定。
+    自动检测模型类型，生成适配的 system prompt。
+    - Claude/GPT 系列 → XML 结构化格式（Anthropic 最佳实践）
+    - GLM/其他 → 精简直接格式（GLM 对长 prompt 注意力分散）
     """
-    prompt_parts = [
+    from app.config import LLM_MODEL as _m
+
+    if any(x in _m.lower() for x in ("claude", "gpt", "o1", "o3", "o4")):
+        return _build_xml_prompt(interviewer_role, scene_description, difficulty_hint, rag_context)
+    else:
+        return _build_compact_prompt(interviewer_role, scene_description, difficulty_hint, rag_context)
+
+
+def _build_compact_prompt(role: str, desc: str, hint: str, rag: str) -> str:
+    """精简 prompt —— 适合 GLM 等对长上下文中指令容易丢失的模型"""
+    parts = [
+        f"你现在是{role}，正在面试一位校招候选人。",
+        f"场景：{desc}",
+        "",
+        "【必须遵守的规则】",
+        "- 你的每一条回复都是一位真人面试官说的话，不允许说「作为AI助手」「根据我的训练数据」之类的词",
+        "- 每次只问一个问题，等待对方回答后再追问",
+        "- 追问1-2层，考察思考深度",
+        "- 可以在对方回答薄弱时提出质疑，但语气保持专业",
+        "- 每次回复控制在50-150字，简洁有力",
+        "- 对话5-8轮后自然地结束面试",
+    ]
+    if hint:
+        parts.append(f"- {hint}")
+    if rag:
+        parts.append(f"\n【可参考的背景知识】\n{rag}")
+    parts.append("\n现在，请发出你的第一句话，开始面试。只需要面试内容本身。")
+    return "\n".join(parts)
+
+
+def _build_xml_prompt(role: str, desc: str, hint: str, rag: str) -> str:
+    """XML 结构化 prompt —— Anthropic 最佳实践，适合 Claude/GPT"""
+    parts = [
         "<role>",
-        f"你是{interviewer_role}，正在对一位校招候选人进行真实的模拟面试。",
-        f"场景：{scene_description}",
+        f"你是{role}，正在对一位校招候选人进行真实的模拟面试。",
+        f"场景：{desc}",
         "</role>",
         "",
         "<behavior_rules>",
-        "1. 角色一致性：始终以面试官身份说话，绝不跳出角色说「作为AI助手」之类的话",
-        "2. 单问原则：每轮只问一个问题，不要一次抛出多个问题",
-        "3. 追问深度：对回答进行1-2层追问，考察思考深度",
-        "4. 适度压力：可提出质疑或追问细节，但不要恶意刁难",
-        "5. 自然收尾：5-8轮对话后自然结束，可以这样说：「好的，这一轮面试就到这里，请问你有什么想问我的吗？」",
-        "6. 简洁回复：每次回复控制在50-150字，像真人面试官一样精炼",
+        "1. 角色一致性：始终以面试官身份说话，绝不跳出角色",
+        "2. 单问原则：每轮只问一个问题",
+        "3. 追问深度：对回答进行1-2层追问",
+        "4. 适度压力：可质疑，但不刁难",
+        "5. 自然收尾：5-8轮后自然结束",
+        "6. 简洁回复：每次50-150字",
         "</behavior_rules>",
     ]
-
-    if difficulty_hint:
-        prompt_parts.extend([
-            "",
-            "<difficulty_guidance>",
-            f"当前练习难度：{difficulty_hint}",
-            "</difficulty_guidance>",
-        ])
-
-    if rag_context:
-        prompt_parts.extend([
-            "",
-            "<reference_knowledge>",
-            "以下是本次面试可参考的背景知识，用来让你的提问更专业：",
-            rag_context,
-            "</reference_knowledge>",
-        ])
-
-    prompt_parts.extend([
-        "",
-        "<output_format>",
-        "只输出面试内容本身，不要加任何前缀（如「面试官：」）或后缀说明。",
-        "像真人说话一样自然、简洁。",
-        "</output_format>",
-    ])
-
-    return "\n".join(prompt_parts)
+    if hint:
+        parts.extend(["", f"<difficulty>{hint}</difficulty>"])
+    if rag:
+        parts.extend(["", f"<knowledge>{rag}</knowledge>"])
+    parts.extend(["", "<format>只输出面试内容，不加前缀后缀。像真人说话。</format>"])
+    return "\n".join(parts)
 
 
 def build_feedback_prompt(messages: list[dict]) -> str:
