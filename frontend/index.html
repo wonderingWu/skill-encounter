@@ -365,8 +365,7 @@ function showPage(n){
     document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
     const el=document.getElementById(n+'-page');if(el)el.classList.add('active');
     document.getElementById('sidebar').style.display=n==='scene'?'block':'none';
-    if(n!=='scene')document.getElementById('main').classList.add('page');
-    else document.getElementById('main').classList.remove('page');
+    // 练习和反馈页面不需要 scene-page 的 display:block
 }
 function goBack(){state.sessionId=null;showPage('scene');document.getElementById('sidebar').style.display='block';filterScenes();loadHexData();}
 
