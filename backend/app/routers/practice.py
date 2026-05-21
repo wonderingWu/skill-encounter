@@ -17,7 +17,7 @@ from app.models.schemas import (
 from app.data.scenes import get_scene_by_id
 from app.services.llm import generate, build_interviewer_system_prompt, compact_for_continuation
 from app.services.rag import retrieve
-from app.services.evaluator import evaluate_session, evaluate_hexagon, detect_gaps
+from app.services.evaluator import evaluate_session, evaluate_hexagon
 import logging
 
 logger = logging.getLogger(__name__)
@@ -26,11 +26,39 @@ _sessions: dict[str, dict] = {}
 
 # 全局用户能力档案（MVP用内存，后续换DB）
 _user_hexagon: dict[str, HexagonScore | None] = {"self": None, "latest_ai": None, "history": []}
+_user_profile: dict = {}
 
 
+@router.get("/profile")
+async def get_profile():
+    """获取用户画像"""
+    return {
+        "profile": _user_profile,
+        "hexagon": {
+            "dimensions": HEXAGON_DIMENSIONS,
+            "self_assessment": _user_hexagon.get("self"),
+            "latest_ai": _user_hexagon.get("latest_ai"),
+            "history": _user_hexagon.get("history", []),
+        }
+    }
+
+
+@router.post("/profile")
+async def save_profile(profile: dict):
+    """保存用户画像 {year, major, concerns: [...], hexagon_self: {...}}"""
+    if "year" in profile: _user_profile["year"] = profile["year"]
+    if "major" in profile: _user_profile["major"] = profile["major"]
+    if "concerns" in profile: _user_profile["concerns"] = profile["concerns"]
+    if "hexagon_self" in profile:
+        try:
+            _user_hexagon["self"] = HexagonSelfAssessment(**profile["hexagon_self"])
+        except Exception: pass
+    return {"status": "ok", "profile": _user_profile}
+
+# -- 保留 hexagon-info 兼容旧调用 --
 @router.get("/hexagon-info")
 async def hexagon_info():
-    """获取六维能力信息和当前评分"""
+    """获取六维能力信息（兼容）"""
     return {
         "dimensions": HEXAGON_DIMENSIONS,
         "self_assessment": _user_hexagon.get("self"),
@@ -73,7 +101,6 @@ async def start_practice(req: PracticeStartRequest):
         "round": 1, "total_tokens": usage_start["input"] + usage_start["output"],
         "token_log": [{"action": "start", **usage_start}],
         "rag_used": False, "created_at": time.time(),
-        "gap_detected": False,
     }
     return PracticeStartResponse(
         session_id=session_id, scene=scene, opening_message=opening,
@@ -89,28 +116,6 @@ async def send_message(req: PracticeMessageRequest):
 
     scene = session["scene"]
     session["messages"].append({"role": "user", "content": req.message})
-
-    # ═══ 首轮差距检测 ═══
-    gap_hint = ""
-    if not session.get("gap_detected") and session["round"] == 1:
-        session["gap_detected"] = True
-        try:
-            gaps = detect_gaps(req.message)
-            if gaps.detected_gaps:
-                dim_names = []
-                for g in gaps.detected_gaps:
-                    d = next((d for d in HEXAGON_DIMENSIONS if d['id'] == g), None)
-                    dim_names.append(f"{d['emoji']} {d['name']}" if d else g)
-                gap_hint = (
-                    f"【注意】从用户的第一条消息中，我注意到TA可能在以下方面需要关注："
-                    f"{', '.join(dim_names)}。"
-                    f"请在适当的时候温和地引导TA思考这些方向。"
-                )
-                if gaps.hint_question:
-                    gap_hint += f" 提示问题：{gaps.hint_question}"
-                logger.info(f"会话 {req.session_id} 差距检测: {gaps.detected_gaps}")
-        except Exception as e:
-            logger.warning(f"差距检测失败: {e}")
 
     # compaction
     if len(session["messages"]) > 10:
@@ -129,7 +134,6 @@ async def send_message(req: PracticeMessageRequest):
         scene_description=scene.description,
         difficulty_hint=(
             f"第{session['round']}轮。{'请保持追问深度' if session['round'] <= 5 else '在2-3轮内自然收尾'}"
-            + (f"\n{gap_hint}" if gap_hint else "")
         ),
         rag_context=rag_context,
     )
