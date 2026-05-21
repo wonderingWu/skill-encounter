@@ -1,104 +1,125 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>技能奇遇</title>
-    <style>
-        :root {
-            --bg:#f5f5f7; --card:#fff; --text:#1d1d1f; --text2:#86868b;
-            --accent:#0071e3; --radius:16px; --shadow:0 2px 10px rgba(0,0,0,0.04);
-            --font:-apple-system,BlinkMacSystemFont,"SF Pro Display","PingFang SC",sans-serif;
-            --sidebar:248px;
-        }
-        *{margin:0;padding:0;box-sizing:border-box}
-        body{font-family:var(--font);background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased}
-        #app{max-width:960px;margin:0 auto;padding:24px 20px 60px;display:flex;gap:28px}
-        #sidebar{width:var(--sidebar);flex-shrink:0;position:sticky;top:24px;align-self:flex-start}
-        #main{flex:1;min-width:0}
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>技能奇遇</title>
+<style>
+:root{
+    --bg:#f5f5f7;--card:#fff;--text:#1d1d1f;--text2:#86868b;
+    --accent:#0071e3;--radius:16px;--shadow:0 2px 10px rgba(0,0,0,0.04);
+    --font:-apple-system,BlinkMacSystemFont,"SF Pro Display","PingFang SC",sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:var(--font);background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased}
+#app{max-width:960px;margin:0 auto;padding:24px 20px 60px;display:flex;gap:28px}
+#sidebar{width:248px;flex-shrink:0;position:sticky;top:24px;align-self:flex-start}
+#main{flex:1;min-width:0}
 
-        .header h1{font-size:26px;font-weight:700;letter-spacing:-.4px;margin-bottom:2px}
-        .header p{font-size:14px;color:var(--text2);margin-bottom:16px}
-        .search-box{position:relative;margin-bottom:16px}
-        .search-box input{width:100%;padding:10px 14px 10px 36px;border:1px solid #d2d2d7;border-radius:12px;
-            font-size:14px;font-family:var(--font);outline:none;background:var(--card)}
-        .search-box input:focus{border-color:var(--accent)}
-        .search-box::before{content:'🔍';position:absolute;left:12px;top:8px;font-size:14px}
+.header h1{font-size:26px;font-weight:700;letter-spacing:-.4px;margin-bottom:2px}
+.header p{font-size:14px;color:var(--text2);margin-bottom:16px}
+.search-box{position:relative;margin-bottom:12px}
+.search-box input{width:100%;padding:10px 14px 10px 36px;border:1px solid #d2d2d7;border-radius:12px;font-size:14px;font-family:var(--font);outline:none;background:var(--card)}
+.search-box input:focus{border-color:var(--accent)}
+.search-box::before{content:'🔍';position:absolute;left:12px;top:8px;font-size:14px}
+.cat-list{display:flex;flex-direction:column;gap:4px}
+.cat-item{padding:10px 14px;border-radius:10px;cursor:pointer;font-size:14px;transition:.15s;display:flex;align-items:center;gap:8px;color:var(--text2)}
+.cat-item:hover{background:var(--card)}
+.cat-item.active{background:var(--card);color:var(--text);font-weight:600;box-shadow:var(--shadow)}
+.cat-emoji{font-size:18px}
+.theme-dots{display:flex;gap:6px;margin-top:16px;padding-top:12px;border-top:1px solid #e5e5ea}
+.theme-dot{width:24px;height:24px;border-radius:12px;cursor:pointer;border:2px solid transparent;transition:.15s}
+.theme-dot:hover{transform:scale(1.15)}
+.theme-dot.active{border-color:var(--text)}
 
-        .cat-list{display:flex;flex-direction:column;gap:4px}
-        .cat-item{padding:10px 14px;border-radius:10px;cursor:pointer;font-size:14px;transition:.15s;
-            display:flex;align-items:center;gap:8px;color:var(--text2)}
-        .cat-item:hover{background:var(--card)}
-        .cat-item.active{background:var(--card);color:var(--text);font-weight:600;box-shadow:var(--shadow)}
-        .cat-emoji{font-size:18px}
-        .cat-count{font-size:12px;margin-left:auto;opacity:.5}
+/* hexagon card */
+.hex-card{background:var(--card);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow);margin-bottom:16px}
+.hex-card h3{font-size:15px;font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.hex-chart{display:flex;justify-content:center}
+.hex-chart svg{max-width:100%}
+.hex-labels{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:10px}
+.hex-label{font-size:12px;color:var(--text2);text-align:center;padding:4px}
+.hex-label .hl-score{font-size:20px;font-weight:700;color:var(--text)}
+.hex-actions{display:flex;gap:8px;margin-top:12px}
+.hex-actions button{flex:1;padding:10px;border-radius:10px;border:1px solid #d2d2d7;background:var(--card);font-size:13px;cursor:pointer;font-family:var(--font);transition:.15s}
+.hex-actions button:hover{border-color:var(--accent)}
+.hex-actions button.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
 
-        /* theme */
-        .theme-dots{display:flex;gap:6px;margin-top:16px;padding-top:12px;border-top:1px solid #e5e5ea}
-        .theme-dot{width:24px;height:24px;border-radius:12px;cursor:pointer;border:2px solid transparent;transition:.15s}
-        .theme-dot:hover{transform:scale(1.15)}
-        .theme-dot.active{border-color:var(--text)}
+/* self-assessment modal */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:100;justify-content:center;align-items:center}
+.modal-overlay.show{display:flex}
+.modal{background:var(--card);border-radius:var(--radius);padding:24px;max-width:480px;width:90%;max-height:90vh;overflow-y:auto}
+.modal h3{font-size:18px;margin-bottom:4px}
+.modal p{font-size:13px;color:var(--text2);margin-bottom:16px}
+.slider-row{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.slider-row .dim-emoji{font-size:20px}
+.slider-row .dim-name{font-size:14px;font-weight:600;width:80px;flex-shrink:0}
+.slider-row input[type=range]{flex:1;accent-color:var(--accent)}
+.slider-row .dim-val{font-size:14px;font-weight:700;width:28px;text-align:center}
+.modal .btn-row{display:flex;gap:8px;margin-top:16px}
+.modal .btn-row button{flex:1;padding:12px;border-radius:12px;border:none;font-size:15px;font-weight:600;cursor:pointer;font-family:var(--font)}
+.modal .btn-save{background:var(--accent);color:#fff}
+.modal .btn-cancel{background:#f0f0f5;color:var(--text)}
 
-        /* scene grid */
-        .scene-grid{display:flex;flex-direction:column;gap:12px}
-        .scene-card{background:var(--card);border-radius:var(--radius);padding:20px 22px;
-            cursor:pointer;transition:.18s;box-shadow:var(--shadow);border:1.5px solid transparent}
-        .scene-card:hover{border-color:var(--accent);transform:translateY(-1px)}
-        .card-head{display:flex;align-items:center;gap:10px;margin-bottom:6px}
-        .card-emoji{font-size:26px}
-        .card-title{font-size:16px;font-weight:600;letter-spacing:-.3px}
-        .card-desc{font-size:13px;color:var(--text2);line-height:1.5}
-        .card-tags{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
-        .card-tag{font-size:11px;padding:3px 10px;border-radius:20px;background:#f0f0f5;color:var(--text2)}
-        .no-result{text-align:center;padding:40px;color:var(--text2);font-size:15px;grid-column:1/-1}
+/* scene grid */
+.scene-grid{display:flex;flex-direction:column;gap:12px}
+.scene-card{background:var(--card);border-radius:var(--radius);padding:20px 22px;cursor:pointer;transition:.18s;box-shadow:var(--shadow);border:1.5px solid transparent}
+.scene-card:hover{border-color:var(--accent);transform:translateY(-1px)}
+.card-head{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.card-emoji{font-size:26px}
+.card-title{font-size:16px;font-weight:600}
+.card-desc{font-size:13px;color:var(--text2);line-height:1.5}
+.card-tags{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+.card-tag{font-size:11px;padding:3px 10px;border-radius:20px;background:#f0f0f5;color:var(--text2)}
+.no-result{text-align:center;padding:40px;color:var(--text2);font-size:15px}
 
-        /* pages */
-        .page{display:none}
-        .page.active{display:flex;flex-direction:column}
-        .scene-page.active{display:block}
+/* pages */
+.page{display:none}
+.page.active{display:flex;flex-direction:column}
+.scene-page{display:block}
 
-        /* chat */
-        .practice-header{display:flex;align-items:center;gap:12px;padding:12px 0;margin-bottom:16px;border-bottom:1px solid #e5e5ea}
-        .btn-back,.btn-end{padding:6px 14px;border-radius:20px;border:1px solid #d2d2d7;background:#fff;font-size:13px;cursor:pointer;font-family:var(--font)}
-        .btn-end{color:#ff3b30;border-color:#ff3b30}
-        .chat-area{display:flex;flex-direction:column;gap:16px;min-height:50vh;padding:8px 0;flex:1}
-        .msg{max-width:88%;padding:12px 16px;border-radius:18px;font-size:15px;line-height:1.6;animation:fadeUp .25s}
-        @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-        .msg.ai{align-self:flex-start;background:var(--card);border:1px solid #e5e5ea;border-bottom-left-radius:6px}
-        .msg.user{align-self:flex-end;background:var(--accent);color:#fff;border-bottom-right-radius:6px}
-        .msg .label{font-size:12px;opacity:.6;margin-bottom:4px}
-        .chat-input{display:flex;gap:8px;padding:12px 0}
-        .chat-input textarea{flex:1;padding:12px 16px;border:1px solid #d2d2d7;border-radius:22px;font-size:15px;font-family:var(--font);resize:none;outline:none}
-        .chat-input textarea:focus{border-color:var(--accent)}
-        .btn-send{padding:10px 22px;border-radius:22px;border:none;background:var(--accent);color:#fff;font-size:15px;font-weight:600;cursor:pointer;font-family:var(--font)}
-        .btn-send:disabled{opacity:.4}
+/* chat */
+.practice-header{display:flex;align-items:center;gap:12px;padding:12px 0;margin-bottom:16px;border-bottom:1px solid #e5e5ea}
+.btn-back,.btn-end{padding:6px 14px;border-radius:20px;border:1px solid #d2d2d7;background:#fff;font-size:13px;cursor:pointer;font-family:var(--font)}
+.btn-end{color:#ff3b30;border-color:#ff3b30}
+.chat-area{display:flex;flex-direction:column;gap:16px;min-height:50vh;padding:8px 0;flex:1}
+.msg{max-width:88%;padding:12px 16px;border-radius:18px;font-size:15px;line-height:1.6;animation:fadeUp .25s}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.msg.ai{align-self:flex-start;background:var(--card);border:1px solid #e5e5ea;border-bottom-left-radius:6px}
+.msg.user{align-self:flex-end;background:var(--accent);color:#fff;border-bottom-right-radius:6px}
+.msg .label{font-size:12px;opacity:.6;margin-bottom:4px}
+.chat-input{display:flex;gap:8px;padding:12px 0}
+.chat-input textarea{flex:1;padding:12px 16px;border:1px solid #d2d2d7;border-radius:22px;font-size:15px;font-family:var(--font);resize:none;outline:none}
+.chat-input textarea:focus{border-color:var(--accent)}
+.btn-send{padding:10px 22px;border-radius:22px;border:none;background:var(--accent);color:#fff;font-size:15px;font-weight:600;cursor:pointer;font-family:var(--font)}
+.btn-send:disabled{opacity:.4}
 
-        /* feedback */
-        .feedback-card{background:var(--card);border-radius:var(--radius);padding:28px;box-shadow:var(--shadow)}
-        .fb-score{text-align:center;margin-bottom:20px}
-        .fb-score .num{font-size:52px;font-weight:800;color:var(--accent)}
-        .fb-score .lbl{font-size:13px;color:var(--text2);display:block}
-        .fb-dims{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px}
-        .fb-dim{background:#f5f5f7;border-radius:12px;padding:14px}
-        .fb-dim .dn{font-size:14px;font-weight:600;margin-bottom:4px}
-        .fb-dim .ds{font-size:16px;margin-bottom:4px}
-        .fb-dim .dc{font-size:13px;color:var(--text2);line-height:1.4}
-        .fb-section{margin-bottom:16px}.fb-section h3{font-size:15px;margin-bottom:8px}
-        .fb-section ul{padding-left:20px;font-size:14px;color:var(--text2);line-height:1.8}
-        .fb-summary{background:#f0f0f5;border-radius:12px;padding:16px;font-size:15px;text-align:center;line-height:1.7;margin-bottom:20px}
-        .btn-primary{display:block;width:100%;padding:14px;border-radius:14px;border:none;background:var(--accent);color:#fff;font-size:16px;font-weight:600;cursor:pointer;font-family:var(--font)}
+/* feedback */
+.feedback-card{background:var(--card);border-radius:var(--radius);padding:28px;box-shadow:var(--shadow)}
+.fb-vs{display:flex;gap:16px;justify-content:center;margin-bottom:20px}
+.fb-vs-col{text-align:center;flex:1;padding:12px;background:#f5f5f7;border-radius:12px}
+.fb-vs-col .vs-label{font-size:12px;color:var(--text2);margin-bottom:4px}
+.fb-vs-col .vs-score{font-size:28px;font-weight:800;color:var(--accent)}
+.fb-dims{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px}
+.fb-dim{background:#f5f5f7;border-radius:12px;padding:14px}
+.fb-dim .dn{font-size:14px;font-weight:600;margin-bottom:4px}
+.fb-dim .ds{font-size:16px;margin-bottom:4px}
+.fb-dim .dc{font-size:13px;color:var(--text2);line-height:1.4}
+.fb-section{margin-bottom:16px}.fb-section h3{font-size:15px;margin-bottom:8px}
+.fb-section ul{padding-left:20px;font-size:14px;color:var(--text2);line-height:1.8}
+.fb-summary{background:#f0f0f5;border-radius:12px;padding:16px;font-size:15px;text-align:center;line-height:1.7;margin-bottom:20px}
+.btn-primary{display:block;width:100%;padding:14px;border-radius:14px;border:none;background:var(--accent);color:#fff;font-size:16px;font-weight:600;cursor:pointer;font-family:var(--font)}
+.loading{text-align:center;padding:40px;color:var(--text2);font-size:15px}
+.hint{font-size:12px;color:var(--accent);margin-left:8px;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
 
-        .loading{text-align:center;padding:40px;color:var(--text2);font-size:15px}
-
-        @media(max-width:700px){
-            #app{flex-direction:column;padding:16px 14px 60px}
-            #sidebar{width:100%;position:static;flex-shrink:1}
-            .cat-list{flex-direction:row;overflow-x:auto;gap:6px;padding-bottom:4px}
-            .cat-item{white-space:nowrap;padding:8px 14px;font-size:13px}
-            .cat-count{display:none}
-            .theme-dots{flex-direction:row}
-        }
-    </style>
+@media(max-width:700px){
+    #app{flex-direction:column;padding:16px 14px 60px}
+    #sidebar{width:100%;position:static;flex-shrink:1}
+    .cat-list{flex-direction:row;overflow-x:auto;gap:6px;padding-bottom:4px}
+    .cat-item{white-space:nowrap;padding:8px 14px;font-size:13px}
+}
+</style>
 </head>
 <body>
 <div id="app">
@@ -109,19 +130,29 @@
         <h1>🎯 技能奇遇</h1>
         <p id="header-sub">选一个你脑子里想过的问题</p>
     </div>
-    <div class="search-box"><input type="text" id="search" placeholder="搜一下…比如紧张、面试、社恐" oninput="filterScenes()"></div>
+
+    <!-- hexagon -->
+    <div class="hex-card" id="hex-card">
+        <h3>📊 你的六边形</h3>
+        <div class="hex-chart" id="hex-svg"></div>
+        <div class="hex-labels" id="hex-labels"></div>
+        <div class="hex-actions">
+            <button onclick="openSelfAssessment()">✏️ 自我评估</button>
+            <button class="primary" onclick="startFromGap()" id="btn-gap" disabled>🎯 AI推荐训练</button>
+        </div>
+    </div>
+
+    <div class="search-box"><input type="text" id="search" placeholder="搜一下…" oninput="filterScenes()"></div>
     <div class="cat-list" id="cat-list"></div>
     <div class="theme-dots" id="theme-dots"></div>
 </aside>
 
 <!-- ═════ MAIN ═════ -->
 <main id="main">
-    <!-- scene list page -->
     <div id="scene-page" class="page scene-page active">
         <div class="scene-grid" id="scene-grid"><div class="loading">加载中…</div></div>
     </div>
 
-    <!-- practice page -->
     <div id="practice-page" class="page">
         <div class="practice-header">
             <button class="btn-back" onclick="goBack()">←</button>
@@ -137,10 +168,9 @@
         </div>
     </div>
 
-    <!-- feedback page -->
     <div id="feedback-page" class="page">
         <div class="feedback-card">
-            <div class="fb-score"><span class="num" id="fb-score">-</span><span class="lbl">综合评估</span></div>
+            <div class="fb-vs" id="fb-vs"></div>
             <div class="fb-dims" id="fb-dims"></div>
             <div class="fb-section"><h3>✨ 做得好的</h3><ul id="fb-strengths"></ul></div>
             <div class="fb-section"><h3>🔧 可以试试</h3><ul id="fb-improvements"></ul></div>
@@ -149,46 +179,53 @@
         </div>
     </div>
 </main>
+</div>
 
+<!-- self-assessment modal -->
+<div class="modal-overlay" id="self-modal">
+    <div class="modal">
+        <h3>📊 自我评估</h3>
+        <p>诚实地给自己打分（0=完全不行，5=非常强）。AI会在你练习后给出它的评分，对比看看你的自我认知准不准。</p>
+        <div id="sliders"></div>
+        <div class="btn-row">
+            <button class="btn-cancel" onclick="closeSelfAssessment()">取消</button>
+            <button class="btn-save" onclick="saveSelfAssessment()">保存自评</button>
+        </div>
+    </div>
 </div>
 
 <script>
 // ═══════ DATA ═══════
-const CATEGORIES = [
-    { id:'all', emoji:'🏠', label:'全部' },
-    { id:'job', emoji:'🎯', label:'求职破局', desc:'面试/简历/经历转化' },
-    { id:'express', emoji:'🗣️', label:'表达突破', desc:'演讲/辩论/克服紧张' },
-    { id:'self', emoji:'🧠', label:'了解自己', desc:'性格/优势/心理成长' },
-    { id:'ai', emoji:'🔮', label:'AI时代', desc:'AI素养/新技能/未来职场' },
+const CATS=[
+    {id:'all',emoji:'🏠',label:'全部'},
+    {id:'job',emoji:'🎯',label:'求职破局'},
+    {id:'express',emoji:'🗣️',label:'表达突破'},
+    {id:'self',emoji:'🧠',label:'了解自己'},
+    {id:'ai',emoji:'🔮',label:'AI时代'},
 ];
-
-const SCENES = [
-    { id:'pm-interview-beginner', emoji:'😰', cat:'job',
-      title:'投了简历没回音，是不是我不够好？',
-      desc:'练一次大厂面试你就知道，不是你不行，是你没准备好。AI面试官陪你走一遍。', tags:['面试模拟','入门','找回信心'] },
-    { id:'pm-interview-intermediate', emoji:'🔥', cat:'job',
-      title:'群面总是插不上话，我该怎么办？',
-      desc:'压力场景专项练习。AI追问到你招架不住的程度，练完真正的群面你就稳了。', tags:['压力面试','进阶','费米问题'] },
-    { id:'pm-interview-advanced', emoji:'💼', cat:'job',
-      title:'学长说没实习经历面试绝对没戏…',
-      desc:'谁说没实习就不能聊？把你做过的社团/比赛/课程项目翻译成面试官想听的故事。', tags:['高阶面试','经验转化','总监面'] },
-    { id:'speech-improv-beginner', emoji:'🎤', cat:'express',
-      title:'课堂pre紧张到脑子一片空白…',
-      desc:'随机话题，2分钟准备，3分钟开讲。多练几次，课堂pre再也不慌。', tags:['即兴演讲','克服紧张','表达力'] },
-    { id:'speech-improv-intermediate', emoji:'🗣️', cat:'express',
-      title:'朋友圈发完又删，怕说错话被人笑…',
-      desc:'在压力下清晰表达。AI教练从结构、语言、台风三维给你反馈。', tags:['进阶演讲','限时挑战','社恐友好'] },
-    { id:'debate-improv', emoji:'⚔️', cat:'express',
-      title:'室友说我观点没逻辑，怎么反驳？',
-      desc:'AI给你辩题和持方，扮演反方与你交锋。练的是思维，长的是自信。', tags:['即兴辩论','逻辑思维','吵架不输'] },
+const SCENES=[
+    {id:'pm-interview-beginner',emoji:'😰',cat:'job',title:'投了简历没回音，是不是我不够好？',desc:'练一次大厂面试你就知道，不是你不行，是你没准备好。',tags:['面试模拟','入门','找回信心']},
+    {id:'pm-interview-intermediate',emoji:'🔥',cat:'job',title:'群面总是插不上话，我该怎么办？',desc:'压力场景专项练习。AI追问到招架不住，练完群面就是小儿科。',tags:['压力面试','进阶','费米问题']},
+    {id:'pm-interview-advanced',emoji:'💼',cat:'job',title:'学长说没实习经历面试绝对没戏…',desc:'把社团/比赛/课程项目翻译成面试官想听的故事。',tags:['高阶面试','经验转化']},
+    {id:'speech-improv-beginner',emoji:'🎤',cat:'express',title:'课堂pre紧张到脑子一片空白…',desc:'2分钟准备，3分钟开讲。多练几次，课堂pre再也不慌。',tags:['即兴演讲','克服紧张']},
+    {id:'speech-improv-intermediate',emoji:'🗣️',cat:'express',title:'朋友圈发完又删，怕说错话被人笑…',desc:'AI教练从结构、语言、台风三维给你反馈。',tags:['进阶演讲','限时挑战']},
+    {id:'debate-improv',emoji:'⚔️',cat:'express',title:'室友说我观点没逻辑，怎么反驳？',desc:'AI给你辩题和持方，扮演反方与你交锋。',tags:['即兴辩论','逻辑思维']},
+];
+const DIMS=[
+    {id:'expression',emoji:'💬',name:'表达影响力',desc:'能把想法说清楚、让人信服'},
+    {id:'logic',emoji:'🧩',name:'逻辑分析力',desc:'结构化思考、拆解复杂问题'},
+    {id:'self_awareness',emoji:'🪞',name:'自我认知力',desc:'了解自己的优势盲区、管理情绪'},
+    {id:'collaboration',emoji:'🤝',name:'人际协作力',desc:'和不同的人合作、处理冲突'},
+    {id:'ai_literacy',emoji:'🤖',name:'AI素养力',desc:'懂AI能做什么、会用AI工具'},
+    {id:'adaptability',emoji:'🌱',name:'适应创新力',desc:'快速学习、在变化中找到方向'},
 ];
 
 // ═══════ THEME ═══════
-const themes = {
-    apple:{ '--bg':'#f5f5f7','--card':'#fff','--text':'#1d1d1f','--text2':'#86868b','--accent':'#0071e3','--radius':'16px','--shadow':'0 2px 10px rgba(0,0,0,0.04)',label:'🍎',sub:'选一个你脑子里想过的问题' },
-    warm:{ '--bg':'#fef9ef','--card':'#fffdf7','--text':'#3d3027','--text2':'#8b7e6e','--accent':'#e8875b','--radius':'18px','--shadow':'0 4px 14px rgba(180,150,120,0.06)',label:'☀️',sub:'慢慢来，我们都经历过这些' },
-    cyber:{ '--bg':'#0a0e1a','--card':'#141829','--text':'#e0e6ff','--text2':'#6b7394','--accent':'#00f0ff','--radius':'4px','--shadow':'0 0 20px rgba(0,240,255,0.05)',label:'⚡',sub:'系统启动中…选择你的挑战' },
-    jike:{ '--bg':'#f8f5f0','--card':'#fffdf9','--text':'#2c2c2c','--text2':'#999','--accent':'#ffc244','--radius':'14px','--shadow':'0 1px 3px rgba(0,0,0,0.03)',label:'🟡',sub:'今天想突破什么？' }
+const themes={
+    apple:{'--bg':'#f5f5f7','--card':'#fff','--text':'#1d1d1f','--text2':'#86868b','--accent':'#0071e3','--radius':'16px',sub:'选一个你脑子里想过的问题'},
+    warm:{'--bg':'#fef9ef','--card':'#fffdf7','--text':'#3d3027','--text2':'#8b7e6e','--accent':'#e8875b','--radius':'18px',sub:'慢慢来，我们都经历过这些'},
+    cyber:{'--bg':'#0a0e1a','--card':'#141829','--text':'#e0e6ff','--text2':'#6b7394','--accent':'#00f0ff','--radius':'4px',sub:'系统启动中…选择你的挑战'},
+    jike:{'--bg':'#f8f5f0','--card':'#fffdf9','--text':'#2c2c2c','--text2':'#999','--accent':'#ffc244','--radius':'14px',sub:'今天想突破什么？'}
 };
 let curTheme='apple';
 function setTheme(n){
@@ -210,36 +247,109 @@ function setTheme(n){
 let curCat='all';
 (function initCats(){
     const el=document.getElementById('cat-list');
-    CATEGORIES.forEach(c=>{
+    CATS.forEach(c=>{
         const d=document.createElement('div');d.className='cat-item'+(c.id===curCat?' active':'');
-        d.innerHTML=`<span class="cat-emoji">${c.emoji}</span>${c.label}<span class="cat-count" id="cnt-${c.id}"></span>`;
-        d.onclick=()=>{ curCat=c.id; filterScenes(); };
+        d.innerHTML=`<span class="cat-emoji">${c.emoji}</span>${c.label}`;
+        d.onclick=()=>{curCat=c.id;filterScenes();document.querySelectorAll('.cat-item').forEach(x=>x.classList.remove('active'));d.classList.add('active')};
         el.appendChild(d);
     });
-    updateCounts();
 })();
 
-function updateCounts(){
-    CATEGORIES.forEach(c=>{
-        const cnt=document.getElementById('cnt-'+c.id);
-        if(!cnt)return;
-        const n=c.id==='all'?SCENES.length:SCENES.filter(s=>s.cat===c.id).length;
-        cnt.textContent=n;
-    });
+// ═══════ HEXAGON ═══════
+let hexSelf=null, hexAI=null, hexHistory=[], hexGaps=[];
+
+function hexScores(){return hexAI||hexSelf||{expression:1,logic:1,self_awareness:1,collaboration:1,ai_literacy:1,adaptability:1}}
+function hexScore(dimId){return hexScores()[dimId]||1}
+
+function drawHexagon(){
+    const h=hexScores();
+    const dims=DIMS.map(d=>d.id);
+    const vals=dims.map(d=>h[d]||1);
+    const cx=110,cy=110,r=90,angles=dims.map((_,i)=>-Math.PI/2+i*2*Math.PI/6);
+    const pts=angles.map((a,i)=>[cx+r*vals[i]/5*Math.cos(a),cy+r*vals[i]/5*Math.sin(a)]);
+
+    let svg=`<svg width="220" height="220" viewBox="0 0 220 220">`;
+    // bg grid
+    for(let lvl=1;lvl<=5;lvl++){
+        const gp=angles.map(a=>[cx+r*lvl/5*Math.cos(a),cy+r*lvl/5*Math.sin(a)]);
+        svg+=`<polygon points="${gp.map(p=>p.join(',')).join(' ')}" fill="none" stroke="#e5e5ea" stroke-width="1"/>`;
+    }
+    // filled hexagon
+    svg+=`<polygon points="${pts.map(p=>p.join(',')).join(' ')}" fill="var(--accent)" fill-opacity="0.15" stroke="var(--accent)" stroke-width="2"/>`;
+    // dots
+    pts.forEach(p=>{svg+=`<circle cx="${p[0]}" cy="${p[1]}" r="4" fill="var(--accent)"/>`});
+    svg+=`</svg>`;
+
+    document.getElementById('hex-svg').innerHTML=svg;
+    document.getElementById('hex-labels').innerHTML=DIMS.map(d=>{
+        const v=hexScore(d.id);
+        return `<div class="hex-label"><div class="hl-score">${v.toFixed(1)}</div>${d.emoji} ${d.name}</div>`;
+    }).join('');
+
+    const gb=document.getElementById('btn-gap');
+    gb.disabled=!hexGaps.length;
+    gb.textContent=hexGaps.length?`🎯 AI推荐: ${hexGaps.map(g=>{
+        const d=DIMS.find(x=>x.id===g);return d?d.name:g;
+    }).join(', ')}`: '🎯 先完成一次练习';
 }
 
-// ═══════ RENDER ═══════
+async function loadHexData(){
+    try{
+        const data=await api('/api/practice/hexagon-info');
+        if(data.self_assessment) hexSelf=data.self_assessment;
+        if(data.latest_ai) hexAI=data.latest_ai;
+        hexHistory=data.history||[];
+        if(data.latest_ai) hexGaps=Object.entries(data.latest_ai).filter(([k,v])=>v<3.0&&k!=='comments').map(([k])=>k);
+    }catch(e){}
+    drawHexagon();
+}
+
+// ═══════ SELF ASSESSMENT ═══════
+function openSelfAssessment(){
+    const sliders=document.getElementById('sliders');
+    sliders.innerHTML=DIMS.map(d=>{
+        const v=hexSelf?hexSelf[d.id]:1;
+        return `<div class="slider-row">
+            <span class="dim-emoji">${d.emoji}</span><span class="dim-name">${d.name}</span>
+            <input type="range" min="0" max="5" step="0.5" value="${v}" id="sl-${d.id}" oninput="document.getElementById('vl-${d.id}').textContent=this.value">
+            <span class="dim-val" id="vl-${d.id}">${v}</span>
+        </div>`;
+    }).join('');
+    document.getElementById('self-modal').classList.add('show');
+}
+function closeSelfAssessment(){document.getElementById('self-modal').classList.remove('show')}
+async function saveSelfAssessment(){
+    const scores={};
+    DIMS.forEach(d=>{scores[d.id]=parseFloat(document.getElementById('sl-'+d.id).value)});
+    await api('/api/practice/hexagon-self',{method:'POST',body:JSON.stringify(scores)});
+    hexSelf=scores;
+    closeSelfAssessment();
+    drawHexagon();
+}
+function startFromGap(){
+    if(!hexGaps.length) return;
+    // 选最弱的维度，推荐对应场景
+    const gap=hexGaps[0];
+    const map={'expression':'speech-improv-beginner','logic':'debate-improv','self_awareness':'pm-interview-advanced','collaboration':'pm-interview-intermediate','ai_literacy':'speech-improv-intermediate','adaptability':'pm-interview-beginner'};
+    const sid=map[gap]||'pm-interview-beginner';
+    start(sid);
+}
+
+// ═══════ API ═══════
+async function api(path,opts={}){
+    const res=await fetch(path,{headers:{'Content-Type':'application/json'},...opts});
+    if(!res.ok){const e=await res.json().catch(()=>({detail:res.statusText}));throw new Error(e.detail);}
+    return res.json();
+}
+
+// ═══════ SCENES ═══════
 function filterScenes(){
     const q=(document.getElementById('search').value||'').toLowerCase();
     let list=SCENES;
     if(curCat!=='all') list=list.filter(s=>s.cat===curCat);
     if(q) list=list.filter(s=>s.title.includes(q)||s.desc.includes(q)||s.tags.some(t=>t.includes(q)));
-
-    document.querySelectorAll('.cat-item').forEach(d=>d.classList.toggle('active',d.querySelector('.cat-emoji')&&
-        CATEGORIES.find(c=>c.label===d.textContent.replace(/\d+/,'').trim())?.id===curCat));
-
     const grid=document.getElementById('scene-grid');
-    if(!list.length){ grid.innerHTML='<div class="no-result">没有匹配的场景，换个关键词试试？</div>'; return; }
+    if(!list.length){grid.innerHTML='<div class="no-result">没有匹配的场景</div>';return}
     grid.innerHTML=list.map(s=>`
         <div class="scene-card" onclick="start('${s.id}')">
             <div class="card-head"><span class="card-emoji">${s.emoji}</span><span class="card-title">${s.title}</span></div>
@@ -253,19 +363,12 @@ function filterScenes(){
 let state={sessionId:null,scene:null};
 function showPage(n){
     document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-    const el=document.getElementById(n+'-page'); if(el)el.classList.add('active');
+    const el=document.getElementById(n+'-page');if(el)el.classList.add('active');
     document.getElementById('sidebar').style.display=n==='scene'?'block':'none';
-    document.getElementById('main').className=n==='scene'?'':'page active';
+    if(n!=='scene')document.getElementById('main').classList.add('page');
+    else document.getElementById('main').classList.remove('page');
 }
-
-function goBack(){state.sessionId=null;showPage('scene');document.getElementById('sidebar').style.display='block';filterScenes();}
-
-// ═══════ API ═══════
-async function api(path,opts={}){
-    const res=await fetch(path,{headers:{'Content-Type':'application/json'},...opts});
-    if(!res.ok){const e=await res.json().catch(()=>({detail:res.statusText}));throw new Error(e.detail);}
-    return res.json();
-}
+function goBack(){state.sessionId=null;showPage('scene');document.getElementById('sidebar').style.display='block';filterScenes();loadHexData();}
 
 // ═══════ PRACTICE ═══════
 async function start(sceneId){
@@ -280,17 +383,15 @@ async function start(sceneId){
         document.getElementById('chat-input').value='';
         showPage('practice');
         addMsg('assistant',data.opening_message);
-    }catch(e){alert('出错了: '+e.message);}
+    }catch(e){alert('出错了: '+e.message)}
 }
-
 function addMsg(role,content){
     const area=document.getElementById('chat-area');
     const d=document.createElement('div');d.className='msg '+(role==='assistant'?'ai':'user');
-    d.innerHTML=`<div class="label">${role==='assistant'?'💬 面试官':'👤 你'}</div>${esc(content)}`;
+    d.innerHTML=`<div class="label">${role==='assistant'?'💬 AI':'👤 你'}</div>${esc(content)}`;
     area.appendChild(d);area.scrollTop=area.scrollHeight;
 }
 function esc(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML.replace(/\n/g,'<br>');}
-
 async function sendMsg(){
     const input=document.getElementById('chat-input');const msg=input.value.trim();
     if(!msg||!state.sessionId)return;
@@ -303,22 +404,26 @@ async function sendMsg(){
     }catch(e){addMsg('assistant','⚠️ '+e.message)}
     finally{btn.disabled=false;btn.textContent='发送';input.focus();}
 }
-
 async function endPractice(){
     if(!state.sessionId||!confirm('确定结束并查看反馈吗？'))return;
     const btn=document.getElementById('btn-end');btn.disabled=true;btn.textContent='评估中…';
     try{
         const data=await api('/api/practice/end',{method:'POST',body:JSON.stringify({session_id:state.sessionId})});
         state.sessionId=null;showFeedback(data.feedback);
+        await loadHexData();
     }catch(e){alert(e.message);btn.disabled=false;btn.textContent='结束';}
 }
 
 // ═══════ FEEDBACK ═══════
 function showFeedback(fb){
     showPage('feedback');
-    document.getElementById('fb-score').textContent=fb.overall_score.toFixed(1);
+    const selfTotal=hexSelf?Object.values(hexSelf).reduce((a,b)=>a+b,0)/6:null;
+    document.getElementById('fb-vs').innerHTML=(selfTotal!==null?`
+        <div class="fb-vs-col"><div class="vs-label">📍 你的自评</div><div class="vs-score">${selfTotal.toFixed(1)}</div></div>
+        <div class="fb-vs-col"><div class="vs-label">🤖 AI评估</div><div class="vs-score">${fb.overall_score.toFixed(1)}</div></div>
+    `:'');
     document.getElementById('fb-dims').innerHTML=fb.dimensions.map(d=>`
-        <div class="fb-dim"><div class="dn">${d.name}</div><div class="ds">${'⭐'.repeat(Math.round(d.score))}</div><div class="dc">${esc(d.comment)}</div></div>
+        <div class="fb-dim"><div class="dn">${d.name}</div><div class="ds">${'⭐'.repeat(Math.round(d.score))}</div><div class="dc">${esc(d.comment||'')}</div></div>
     `).join('');
     document.getElementById('fb-strengths').innerHTML=fb.strengths.map(s=>`<li>${esc(s)}</li>`).join('');
     document.getElementById('fb-improvements').innerHTML=fb.improvements.map(s=>`<li>${esc(s)}</li>`).join('');
@@ -326,9 +431,9 @@ function showFeedback(fb){
 }
 
 // ═══════ INIT ═══════
-document.getElementById('chat-input').addEventListener('keydown',e=>{
-    if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg();}
-});
+document.getElementById('chat-input').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg();}});
+document.getElementById('self-modal').addEventListener('click',e=>{if(e.target===e.currentTarget)closeSelfAssessment()});
+loadHexData();
 filterScenes();
 </script>
 </body>
