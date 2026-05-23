@@ -9,7 +9,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import HOST, PORT, PROJECT_ROOT
-from app.routers import scene, practice
+from app.routers import scene, practice, coach
 from app.services.rag import init_knowledge_base
 
 # 日志配置
@@ -44,7 +44,7 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -52,6 +52,7 @@ app.add_middleware(
 # 注册路由
 app.include_router(scene.router)
 app.include_router(practice.router)
+app.include_router(coach.router)
 
 # 健康检查
 @app.get("/api/health")

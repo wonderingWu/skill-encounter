@@ -23,9 +23,9 @@ _initialized = False
 _retrieval_cache: dict[str, str] = {}
 
 # 使用 sentence-transformers 作为 embedding 函数
-# 支持中文的轻量模型
+# 中英文多语言模型，对中文知识库检索效果更好
 _embedding_fn = embedding_functions.SentenceTransformerEmbeddingFunction(
-    model_name="all-MiniLM-L6-v2"  # 轻量通用模型，支持多语言
+    model_name="paraphrase-multilingual-MiniLM-L12-v2"  # 多语言模型，中文效果好
 )
 
 

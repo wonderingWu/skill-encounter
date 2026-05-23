@@ -93,6 +93,7 @@ def build_interviewer_system_prompt(
     scene_description: str,
     difficulty_hint: str = "",
     rag_context: str = "",
+    coach_context: str = "",
 ) -> str:
     """
     自动检测模型类型，生成适配的 system prompt。
@@ -102,16 +103,20 @@ def build_interviewer_system_prompt(
     from app.config import LLM_MODEL as _m
 
     if any(x in _m.lower() for x in ("claude", "gpt", "o1", "o3", "o4")):
-        return _build_xml_prompt(interviewer_role, scene_description, difficulty_hint, rag_context)
+        return _build_xml_prompt(interviewer_role, scene_description, difficulty_hint, rag_context, coach_context)
     else:
-        return _build_compact_prompt(interviewer_role, scene_description, difficulty_hint, rag_context)
+        return _build_compact_prompt(interviewer_role, scene_description, difficulty_hint, rag_context, coach_context)
 
 
-def _build_compact_prompt(role: str, desc: str, hint: str, rag: str) -> str:
+def _build_compact_prompt(role: str, desc: str, hint: str, rag: str, coach: str) -> str:
     """精简 prompt —— 适合 GLM 等对长上下文中指令容易丢失的模型"""
     parts = [
         f"你现在是{role}，正在面试一位校招候选人。",
         f"场景：{desc}",
+    ]
+    if coach:
+        parts.extend(["", "【你的人格底色】", coach])
+    parts.extend([
         "",
         "【必须遵守的规则】",
         "- 你的每一条回复都是一位真人面试官说的话，不允许说「作为AI助手」「根据我的训练数据」之类的词",
@@ -120,7 +125,7 @@ def _build_compact_prompt(role: str, desc: str, hint: str, rag: str) -> str:
         "- 可以在对方回答薄弱时提出质疑，但语气保持专业",
         "- 每次回复控制在50-150字，简洁有力",
         "- 对话5-8轮后自然地结束面试",
-    ]
+    ])
     if hint:
         parts.append(f"- {hint}")
     if rag:
@@ -129,13 +134,17 @@ def _build_compact_prompt(role: str, desc: str, hint: str, rag: str) -> str:
     return "\n".join(parts)
 
 
-def _build_xml_prompt(role: str, desc: str, hint: str, rag: str) -> str:
+def _build_xml_prompt(role: str, desc: str, hint: str, rag: str, coach: str) -> str:
     """XML 结构化 prompt —— Anthropic 最佳实践，适合 Claude/GPT"""
     parts = [
         "<role>",
         f"你是{role}，正在对一位校招候选人进行真实的模拟面试。",
         f"场景：{desc}",
         "</role>",
+    ]
+    if coach:
+        parts.extend(["", "<persona>", coach, "</persona>"])
+    parts.extend([
         "",
         "<behavior_rules>",
         "1. 角色一致性：始终以面试官身份说话，绝不跳出角色",
@@ -145,7 +154,7 @@ def _build_xml_prompt(role: str, desc: str, hint: str, rag: str) -> str:
         "5. 自然收尾：5-8轮后自然结束",
         "6. 简洁回复：每次50-150字",
         "</behavior_rules>",
-    ]
+    ])
     if hint:
         parts.extend(["", f"<difficulty>{hint}</difficulty>"])
     if rag:
@@ -154,43 +163,6 @@ def _build_xml_prompt(role: str, desc: str, hint: str, rag: str) -> str:
     return "\n".join(parts)
 
 
-def build_feedback_prompt(messages: list[dict]) -> str:
-    """构建反馈评估 Prompt（v2：先压缩再评估）"""
-    # 先压缩对话
-    compacted = _compact_conversation(messages)
-
-    prompt = f"""<task>
-你是资深面试教练。请根据以下对话摘要，对候选人的表现进行结构化评估。
-</task>
-
-<conversation_summary>
-{compacted}
-</conversation_summary>
-
-<evaluation_criteria>
-从4个维度评分(0-5分，精确到0.5)，给出具体点评：
-1. 逻辑结构：回答是否有清晰结构(总分总/STAR/金字塔)，是否逻辑自洽
-2. 专业深度：是否展现足够行业知识和思考深度，是否引用方法论或数据
-3. 表达清晰度：语言是否流畅、简洁、准确
-4. 临场应变：面对追问时是否灵活应对，态度是否从容
-</evaluation_criteria>
-
-<output_requirements>
-输出严格JSON(不要markdown代码块标记):
-{{
-  "overall_score": 3.5,
-  "dimensions": [
-    {{"name": "逻辑结构", "score": 4.0, "comment": "..."}},
-    {{"name": "专业深度", "score": 3.0, "comment": "..."}},
-    {{"name": "表达清晰度", "score": 3.5, "comment": "..."}},
-    {{"name": "临场应变", "score": 3.5, "comment": "..."}}
-  ],
-  "strengths": ["亮点1", "亮点2"],
-  "improvements": ["改进1", "改进2"],
-  "summary": "50字左右总结评语"
-}}
-</output_requirements>"""
-    return prompt
 
 
 # ── 对话压缩（compaction，Anthropic 推荐） ───

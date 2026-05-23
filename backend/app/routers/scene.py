@@ -11,9 +11,10 @@ router = APIRouter(prefix="/api/scenes", tags=["scenes"])
 async def list_scenes_api(
     category: str | None = Query(None, description="按类别筛选: interview/speech/debate/negotiation"),
     difficulty: str | None = Query(None, description="按难度筛选: beginner/intermediate/advanced"),
+    cat: str | None = Query(None, description="按前端分类筛选: job/express/self/ai"),
 ):
     """获取可用场景列表"""
-    scenes = list_scenes(category=category, difficulty=difficulty)
+    scenes = list_scenes(category=category, difficulty=difficulty, cat=cat)
     return SceneListResponse(scenes=scenes, total=len(scenes))
 
 

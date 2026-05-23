@@ -48,6 +48,8 @@ HEXAGON_EVAL_PROMPT = """<task>
     "expression": "...", "logic": "...", "self_awareness": "...",
     "collaboration": "...", "ai_literacy": "...", "adaptability": "..."
   }},
+  "strengths": ["亮点1", "亮点2"],
+  "improvements": ["改进1", "改进2"],
   "gap_dimensions": ["self_awareness", "ai_literacy"],
   "gap_reason": "用户在对话中展现出较强的逻辑分析能力，但对自己的职业方向不够清晰..."
 }}
@@ -79,13 +81,13 @@ GAP_DETECT_PROMPT = """<task>
 </output_json>"""
 
 
-def evaluate_hexagon(messages: list[dict]) -> tuple[HexagonScore, list[str]]:
-    """评估六维度能力，返回 (scores, gap_dimensions)"""
+def evaluate_hexagon(messages: list[dict]) -> tuple[HexagonScore, list[str], list[str], list[str], dict]:
+    """评估六维度能力，返回 (scores, gaps, strengths, improvements, token_usage)"""
     conversation = "\n".join(
         f"[{m['role']}]: {m['content'][:300]}" for m in messages if m['role'] != 'system'
     )
     try:
-        data, _ = generate_json(
+        data, usage = generate_json(
             prompt=HEXAGON_EVAL_PROMPT.format(conversation=conversation),
             temperature=0.2,
             max_tokens=1024,
@@ -100,13 +102,15 @@ def evaluate_hexagon(messages: list[dict]) -> tuple[HexagonScore, list[str]]:
             comments=data.get('comments', {}),
         )
         gaps = data.get('gap_dimensions', [])
-        return scores, gaps
+        strengths = data.get('strengths', [])
+        improvements = data.get('improvements', [])
+        return scores, gaps, strengths, improvements, usage
     except Exception as e:
         logger.error(f"六维评估失败: {e}")
         return HexagonScore(
             expression=2.5, logic=2.5, self_awareness=2.5,
             collaboration=2.5, ai_literacy=2.5, adaptability=2.5,
-        ), []
+        ), [], [], [], {"input": 0, "output": 0}
 
 
 def detect_gaps(first_message: str) -> GapDetection:
@@ -130,6 +134,8 @@ def detect_gaps(first_message: str) -> GapDetection:
 def evaluate_session(
     session_id: str, scene_title: str, messages: list[dict],
     hexagon_scores: HexagonScore | None = None,
+    strengths: list[str] | None = None,
+    improvements: list[str] | None = None,
 ) -> tuple[Feedback, dict]:
     """评估会话（兼容原有4维 + 新增六维）"""
     if not messages or len(messages) < 2:
@@ -142,9 +148,10 @@ def evaluate_session(
         )
         return fb, {"input": 0, "output": 0, "action": "evaluate_skip"}
 
-    # 生成传统4维反馈 + 六维评分
+    # 生成六维评分
+    eval_usage = {"input": 0, "output": 0}
     if hexagon_scores is None:
-        hexagon_scores, _ = evaluate_hexagon(messages)
+        hexagon_scores, _, strengths, improvements, eval_usage = evaluate_hexagon(messages)
 
     overall = round(sum([
         hexagon_scores.expression, hexagon_scores.logic, hexagon_scores.self_awareness,
@@ -160,11 +167,13 @@ def evaluate_session(
     return Feedback(
         session_id=session_id, scene_title=scene_title,
         overall_score=overall, dimensions=dimensions,
-        strengths=[],
-        improvements=[f"{d['emoji']} {d['name']} — {hexagon_scores.comments.get(d['id'], '建议专项练习')}"
-                       for d in HEXAGON_DIMENSIONS if getattr(hexagon_scores, d['id'], 5) < 3.0],
+        strengths=strengths or [],
+        improvements=improvements or [
+            f"{d['emoji']} {d['name']} — {hexagon_scores.comments.get(d['id'], '建议专项练习')}"
+            for d in HEXAGON_DIMENSIONS if getattr(hexagon_scores, d['id'], 5) < 3.0
+        ],
         summary=f"综合六维评分 {overall}/5。最高维度：{_top_dim(hexagon_scores)}。最需提升：{_weak_dim(hexagon_scores)}。",
-    ), {"input": 100, "output": 80, "action": "evaluate_v3"}
+    ), {"input": eval_usage.get("input", 0), "output": eval_usage.get("output", 0), "action": "evaluate_v3"}
 
 
 def _top_dim(s: HexagonScore) -> str:

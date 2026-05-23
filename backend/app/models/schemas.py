@@ -28,10 +28,12 @@ class MessageRole(str, Enum):
 class Scene(BaseModel):
     """场景卡片"""
     id: str = Field(..., description="场景唯一标识，如 pm-interview-beginner")
-    title: str = Field(..., description="场景名称")
+    title: str = Field(..., description="用户视角场景标题")
+    emoji: str = Field(default="💬", description="场景图标 emoji")
+    cat: str = Field(default="all", description="前端分类: job/express/self/ai/all")
     category: SceneCategory = Field(..., description="场景类别")
     difficulty: Difficulty = Field(..., description="难度等级")
-    description: str = Field(..., description="场景描述")
+    description: str = Field(..., description="一句话场景描述")
     tags: list[str] = Field(default_factory=list, description="标签")
     interviewer_role: str = Field(..., description="AI 扮演的角色名称")
     duration_minutes: int = Field(default=15, description="建议练习时长（分钟）")
@@ -63,12 +65,15 @@ class Message(BaseModel):
 class PracticeStartRequest(BaseModel):
     """开始练习请求"""
     scene_id: str = Field(..., description="选择的场景 ID")
+    coach_id: str = Field(default="socrates", description="选择的教练 ID")
+    custom_coach: Optional[dict] = Field(default=None, description="自定义教练数据 {name,emoji,personality}")
 
 
 class PracticeStartResponse(BaseModel):
     """开始练习返回"""
     session_id: str
     scene: Scene
+    coach: Optional[Coach] = None
     opening_message: str = Field(..., description="AI 面试官开场白")
 
 
@@ -160,6 +165,18 @@ class HexagonHistory(BaseModel):
     """六维度历史记录"""
     self_assessment: Optional[HexagonSelfAssessment] = None
     ai_assessments: list[dict] = Field(default_factory=list)  # [{session_id, scene, scores, timestamp}]
+    latest_scores: HexagonScore | None = None
+    gap_dimensions: list[str] = Field(default_factory=list)  # 当前差距最大的维度
+
+
+class ProfileRequest(BaseModel):
+    """用户画像请求"""
+    year: str = Field(default="", description="年级")
+    major: str = Field(default="", description="专业")
+    concerns: list[str] = Field(default_factory=list, description="担忧标签")
+    hexagon_self: Optional[dict] = Field(default=None, description="六维自评 {expression:float,...}")
+    self_assessment: Optional[HexagonSelfAssessment] = None
+    ai_assessments: list[dict] = Field(default_factory=list)  # [{session_id, scene, scores, timestamp}]
     latest_scores: HexagonScore = Field(...)
     gap_dimensions: list[str] = Field(default_factory=list)  # 当前差距最大的维度
 
@@ -169,3 +186,31 @@ class GapDetection(BaseModel):
     detected_gaps: list[str] = Field(default_factory=list)  # 用户可能缺失的维度
     suggested_focus: str = ""  # 建议优先提升的维度
     hint_question: str = ""  # 探测性问题
+
+
+# ── 教练人格 ──────────────────────────────
+
+class Coach(BaseModel):
+    """AI 教练人格"""
+    id: str = Field(..., description="教练唯一标识")
+    name: str = Field(..., description="教练名称")
+    emoji: str = Field(default="🤖", description="教练头像 emoji")
+    tagline: str = Field(default="", description="一句话介绍")
+    personality: str = Field(..., description="人格描述，注入 system prompt")
+    strengths: list[str] = Field(default_factory=list, description="擅长的六维能力")
+    speaking_style: str = Field(default="", description="说话风格")
+    is_preset: bool = Field(default=True, description="是否预设教练")
+
+
+class CoachRecommendRequest(BaseModel):
+    """AI 推荐教练请求"""
+    year: str = Field(default="")
+    major: str = Field(default="")
+    concerns: list[str] = Field(default_factory=list)
+    hexagon_self: Optional[dict] = Field(default=None, description="六维自评 {expression:float,...}")
+
+
+class CoachListResponse(BaseModel):
+    """教练列表返回"""
+    coaches: list[Coach]
+    total: int
