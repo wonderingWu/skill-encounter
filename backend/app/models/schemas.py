@@ -73,7 +73,7 @@ class PracticeStartResponse(BaseModel):
     """开始练习返回"""
     session_id: str
     scene: Scene
-    coach: Optional[Coach] = None
+    coach: Optional["Coach"] = None
     opening_message: str = Field(..., description="AI 面试官开场白")
 
 
