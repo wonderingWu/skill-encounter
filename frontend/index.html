@@ -332,11 +332,11 @@ const CONCERNS=[
     {v:'interview',emoji:'😰',label:'面试说不出话'},
     {v:'direction',emoji:'😵',label:'不知道适合什么工作'},
     {v:'presentation',emoji:'🗣️',label:'课堂pre紧张'},
-    {v:'future',emoji:'🤷',label:'不知道学了能干什么'},
-    {v:'social',emoji:'👥',label:'社恐不敢社交'},
+    {v:'social',emoji:'👥',label:'害怕社交/被孤立'},
     {v:'ai_gap',emoji:'💻',label:'觉得自己落伍了(AI时代)'},
-    {v:'resume',emoji:'📝',label:'简历没东西写'},
-    {v:'career_path',emoji:'🎓',label:'考研还是工作'},
+    {v:'resume',emoji:'📝',label:'经历太少简历没得写'},
+    {v:'career_path',emoji:'🎓',label:'考研还是工作拿不准'},
+    {v:'relationship',emoji:'💔',label:'大学人际关系处不好'},
 ];
 const CATS=[
     {id:'all',emoji:'🏠',label:'全部'},{id:'job',emoji:'🎯',label:'求职破局'},
@@ -354,9 +354,10 @@ const DIMS=[
 // concern → scene mapping
 const CONCERN_MAP={
     interview:'pm-interview-beginner',direction:'pm-interview-advanced',
-    presentation:'speech-improv-beginner',future:'pm-interview-advanced',
+    presentation:'speech-improv-beginner',
     social:'speech-improv-intermediate',ai_gap:'speech-improv-intermediate',
     resume:'pm-interview-advanced',career_path:'pm-interview-beginner',
+    relationship:'pm-interview-intermediate',
 };
 
 // ═══════ THEME ═══════
@@ -414,8 +415,15 @@ async function loadProfile(){
 
 function renderProfile(){
     const hasProfile=profile.year||profile.concerns?.length;
-    document.getElementById('pf-name').textContent=hasProfile?`${profile.year||''} · ${profile.major||'未选专业'}`:'未设置画像';
-    document.getElementById('pf-avatar').textContent=profile.year?profile.year[0]:'👤';
+    if(hasProfile){
+        const topConcern=profile.concerns?.[0];
+        const co=CONCERNS.find(x=>x.v===topConcern);
+        document.getElementById('pf-name').textContent=`${profile.year||''} · ${profile.major||''}`;
+        document.getElementById('pf-avatar').textContent=profile.year?profile.year[0]:'👤';
+    }else{
+        document.getElementById('pf-name').textContent='未设置画像';
+        document.getElementById('pf-avatar').textContent='👤';
+    }
     const tags=document.getElementById('pf-tags');
     if(profile.concerns?.length){
         tags.innerHTML=profile.concerns.map(c=>{
@@ -469,19 +477,27 @@ function nextStep(){
 }
 function prevStep(){showStep(1)}
 async function saveProfile(){
+    const btn=document.querySelector('#step2 .btn-save');
+    btn.disabled=true; btn.textContent='⏳ 保存中...';
     profile.concerns=selectedConcerns;
     const hexScores={};
     DIMS.forEach(d=>{hexScores[d.id]=parseFloat(document.getElementById('sl-'+d.id).value)});
     hexSelf=hexScores;
-    await api('/api/practice/profile',{method:'POST',body:JSON.stringify({
-        year:profile.year,major:profile.major,concerns:profile.concerns,
-        hexagon_self:hexScores
-    })});
+    try{
+        await api('/api/practice/profile',{method:'POST',body:JSON.stringify({
+            year:profile.year,major:profile.major,concerns:profile.concerns,
+            hexagon_self:hexScores
+        })});
+    }catch(e){
+        console.error('保存画像失败:',e);
+        btn.disabled=false; btn.textContent='✅ 完成画像';
+        return; // 不关闭弹窗，让用户看到错误后可以重试
+    }
     closeProfile();
     renderProfile();
     drawHexagon();
-    loadScenes(); // 根据新画像重新加载推荐
-    recommendCoaches(); // 教练推荐
+    loadScenes();
+    await recommendCoaches();
 }
 
 async function recommendCoaches(){

@@ -121,23 +121,18 @@ CONCERN_DIMENSION_MAP = {
     },
     "direction": {
         "primary": "self_awareness",
-        "secondary": ["adaptability"],
-        "reason": "不知道适合什么，需要先了解自己的优势和方向"
+        "secondary": ["adaptability", "logic"],
+        "reason": "不知道适合什么工作，需要先了解自己的优势"
     },
     "presentation": {
         "primary": "expression",
         "secondary": ["self_awareness", "adaptability"],
         "reason": "课堂pre紧张，需要表达力训练和克服焦虑"
     },
-    "future": {
-        "primary": "adaptability",
-        "secondary": ["self_awareness", "logic"],
-        "reason": "不知道学了能干什么，需要拓展视野和建立连接能力"
-    },
     "social": {
         "primary": "collaboration",
         "secondary": ["expression", "self_awareness"],
-        "reason": "社恐不敢社交，需要从轻松对话开始建立协作信心"
+        "reason": "害怕社交或被孤立，需要从轻松对话开始建立信心"
     },
     "ai_gap": {
         "primary": "ai_literacy",
@@ -147,12 +142,17 @@ CONCERN_DIMENSION_MAP = {
     "resume": {
         "primary": "expression",
         "secondary": ["self_awareness", "adaptability"],
-        "reason": "简历没东西写，需要学会挖掘和表达已有经历"
+        "reason": "经历太少简历没得写，需要学会挖掘和表达已有经历"
     },
     "career_path": {
         "primary": "self_awareness",
         "secondary": ["logic", "adaptability"],
-        "reason": "考研还是工作拿不准，需要理清自己的优先级和选择框架"
+        "reason": "考研还是工作拿不准，需要理清自己的优先级"
+    },
+    "relationship": {
+        "primary": "collaboration",
+        "secondary": ["self_awareness", "expression"],
+        "reason": "人际关系处不好，需要学会理解他人和表达自己"
     },
 }
 
