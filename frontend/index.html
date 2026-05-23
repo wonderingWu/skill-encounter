@@ -330,13 +330,16 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);-webkit-font
 // ═══════ CONCERNS ═══════
 const CONCERNS=[
     {v:'interview',emoji:'😰',label:'面试说不出话'},
-    {v:'direction',emoji:'😵',label:'不知道适合什么工作'},
+    {v:'direction',emoji:'😵',label:'不知道适合什么'},
     {v:'presentation',emoji:'🗣️',label:'课堂pre紧张'},
-    {v:'social',emoji:'👥',label:'害怕社交/被孤立'},
-    {v:'ai_gap',emoji:'💻',label:'觉得自己落伍了(AI时代)'},
-    {v:'resume',emoji:'📝',label:'经历太少简历没得写'},
-    {v:'career_path',emoji:'🎓',label:'考研还是工作拿不准'},
-    {v:'relationship',emoji:'💔',label:'大学人际关系处不好'},
+    {v:'social',emoji:'👥',label:'不敢社交怕被孤立'},
+    {v:'ai_gap',emoji:'💻',label:'怕被AI取代'},
+    {v:'career_path',emoji:'🎓',label:'考研工作拿不准'},
+    {v:'money',emoji:'💰',label:'钱不够花压力大'},
+    {v:'meaning',emoji:'😶',label:'不知道卷是为了什么'},
+    {v:'academic',emoji:'📚',label:'学业压力大怕挂科'},
+    {v:'family',emoji:'🏠',label:'家里人不理解我'},
+    {v:'self_worth',emoji:'🪞',label:'总觉得自己不够好'},
 ];
 const CATS=[
     {id:'all',emoji:'🏠',label:'全部'},{id:'job',emoji:'🎯',label:'求职破局'},
@@ -356,8 +359,10 @@ const CONCERN_MAP={
     interview:'pm-interview-beginner',direction:'pm-interview-advanced',
     presentation:'speech-improv-beginner',
     social:'speech-improv-intermediate',ai_gap:'speech-improv-intermediate',
-    resume:'pm-interview-advanced',career_path:'pm-interview-beginner',
-    relationship:'pm-interview-intermediate',
+    career_path:'pm-interview-beginner',
+    money:'pm-interview-intermediate',meaning:'pm-interview-advanced',
+    academic:'pm-interview-beginner',family:'pm-interview-advanced',
+    self_worth:'speech-improv-beginner',
 };
 
 // ═══════ THEME ═══════

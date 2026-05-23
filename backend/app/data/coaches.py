@@ -122,7 +122,7 @@ CONCERN_DIMENSION_MAP = {
     "direction": {
         "primary": "self_awareness",
         "secondary": ["adaptability", "logic"],
-        "reason": "不知道适合什么工作，需要先了解自己的优势"
+        "reason": "不知道适合什么，需要先了解自己的优势"
     },
     "presentation": {
         "primary": "expression",
@@ -132,28 +132,58 @@ CONCERN_DIMENSION_MAP = {
     "social": {
         "primary": "collaboration",
         "secondary": ["expression", "self_awareness"],
-        "reason": "害怕社交或被孤立，需要从轻松对话开始建立信心"
+        "reason": "不敢社交怕被孤立，需要从轻松对话开始建立信心"
     },
     "ai_gap": {
         "primary": "ai_literacy",
         "secondary": ["adaptability"],
-        "reason": "觉得落伍了，需要建立AI素养和适应变化的信心"
-    },
-    "resume": {
-        "primary": "expression",
-        "secondary": ["self_awareness", "adaptability"],
-        "reason": "经历太少简历没得写，需要学会挖掘和表达已有经历"
+        "reason": "怕被AI取代，需要建立AI素养和适应变化的信心"
     },
     "career_path": {
         "primary": "self_awareness",
         "secondary": ["logic", "adaptability"],
-        "reason": "考研还是工作拿不准，需要理清自己的优先级"
+        "reason": "考研工作拿不准，需要理清自己的优先级"
     },
-    "relationship": {
-        "primary": "collaboration",
+    "money": {
+        "primary": "adaptability",
         "secondary": ["self_awareness", "expression"],
-        "reason": "人际关系处不好，需要学会理解他人和表达自己"
+        "reason": "钱不够花压力大，需要看到更多可能性和出路"
     },
+    "meaning": {
+        "primary": "self_awareness",
+        "secondary": ["adaptability", "logic"],
+        "reason": "不知道卷是为了什么，需要重新找到自己的坐标"
+    },
+    "academic": {
+        "primary": "self_awareness",
+        "secondary": ["logic", "adaptability"],
+        "reason": "学业压力大怕挂科，需要克服恐惧和找到学习方法"
+    },
+    "family": {
+        "primary": "self_awareness",
+        "secondary": ["expression", "collaboration"],
+        "reason": "家里人不理解我，需要学会表达自己和管理家人期待"
+    },
+    "self_worth": {
+        "primary": "self_awareness",
+        "secondary": ["expression", "adaptability"],
+        "reason": "总觉得自己不够好，需要发现自己的价值和优势"
+    },
+}
+
+# 标签→教练直接映射（用于精准推荐，比维度匹配更准确）
+TAG_COACH_MAP: dict[str, list[str]] = {
+    "interview":    ["socrates", "afei", "ningjing"],
+    "direction":    ["socrates", "adu", "sontag"],
+    "presentation": ["sushi", "afei", "xiaoye"],
+    "social":       ["atie", "wuzetian", "adu"],
+    "ai_gap":       ["musk", "sontag", "einstein"],
+    "career_path":  ["adu", "socrates", "xiaoye"],
+    "money":        ["afei", "xiaoye", "atie"],
+    "meaning":      ["sushi", "adu", "sontag"],
+    "academic":     ["atie", "einstein", "sushi"],
+    "family":       ["xiaoye", "wuzetian", "adu"],
+    "self_worth":   ["afei", "ningjing", "adu"],
 }
 
 # 教练推荐文案模板
@@ -191,17 +221,22 @@ def recommend_coaches(
 ) -> list[dict]:
     """
     根据用户画像推荐教练，返回 [{"coach": Coach, "reason": str, "score": int}, ...]
-    评分逻辑：
-    - 担忧标签匹配 primary 维度 → +3 分
-    - 担忧标签匹配 secondary 维度 → +2 分
-    - 六维自评中低于 3 分 的维度 → +2 分/维度
-    - 多个担忧匹配同一维度可叠加
+    评分逻辑（双层）：
+    - 标签→教练直接映射（TAG_COACH_MAP）→ +5 分/匹配（精准推荐）
+    - 担忧→维度→教练间接匹配（CONCERN_DIMENSION_MAP）→ +2-3 分/匹配（广度覆盖）
+    - 六维自评中低于 3 分的维度 → +2 分/维度（个性化）
     """
     scored = []
     for coach in PRESET_COACHES:
         score = 0
 
-        # 匹配担忧标签
+        # 第一层：标签→教练直接映射（精准）
+        if concerns:
+            for concern in concerns:
+                if coach.id in TAG_COACH_MAP.get(concern, []):
+                    score += 5
+
+        # 第二层：担忧→维度→教练间接匹配（广度）
         if concerns:
             for concern in concerns:
                 mapping = CONCERN_DIMENSION_MAP.get(concern, {})
@@ -213,21 +248,19 @@ def recommend_coaches(
                     if dim in coach.strengths:
                         score += 2
 
-        # 匹配六维弱点（自评低于 3 分 的维度 × 2）
+        # 第三层：六维弱点匹配
         if hexagon_self:
             dim_ids = ["expression", "logic", "self_awareness", "collaboration", "ai_literacy", "adaptability"]
             for dim_id in dim_ids:
                 if hexagon_self.get(dim_id, 5) < 3.0 and dim_id in coach.strengths:
                     score += 2
 
-        # 兜底：至少给 1 分确保有排序
         if score == 0:
             score = 1
         scored.append((coach, score))
 
     scored.sort(key=lambda x: x[1], reverse=True)
 
-    # 生成推荐理由
     result = []
     for coach, score in scored[:3]:
         reason = COACH_RECOMMEND_REASONS.get(coach.id, f"{coach.name}的{coach.tagline}")
