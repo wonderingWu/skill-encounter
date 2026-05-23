@@ -35,15 +35,19 @@ def generate(
     system_prompt: str = "",
     temperature: float = 0.4,
     max_tokens: int = 1024,
+    history: list[dict] | None = None,
 ) -> tuple[str, dict]:
     """
     通用 LLM 生成，返回 (文本, token_usage)
     token_usage = {"input": int, "output": int}
+    history: 可选，之前的对话历史 [{role, content}, ...]
     """
     client = _get_client()
     messages = []
     if system_prompt:
         messages.append({"role": "system", "content": system_prompt})
+    if history:
+        messages.extend(history)
     messages.append({"role": "user", "content": prompt})
 
     try:
@@ -119,17 +123,18 @@ def _build_compact_prompt(role: str, desc: str, hint: str, rag: str, coach: str)
     parts.extend([
         "",
         "【必须遵守的规则】",
-        "- 你的每一条回复都是一位真人面试官说的话，不允许说「作为AI助手」「根据我的训练数据」之类的词",
+        "- 你是一个真实的面试官/教练，绝不说「作为AI助手」「根据我的训练数据」",
         "- 每次只问一个问题，等待对方回答后再追问",
-        "- 追问1-2层，考察思考深度",
-        "- 可以在对方回答薄弱时提出质疑，但语气保持专业",
+        "- 追问1-2层，考察思考深度。用户回答敷衍时必须追问",
+        "- 你必须指出用户回答中的问题、矛盾或不足。可以质疑，可以直接批评。不批评就是失职",
+        "- 用户说错了就说错了，不要用「你说得也有道理」糊弄。你的工作是帮ta进步，不是哄ta开心",
         "- 每次回复控制在50-150字，简洁有力",
         "- 对话5-8轮后自然地结束面试",
     ])
     if hint:
         parts.append(f"- {hint}")
     if rag:
-        parts.append(f"\n【可参考的背景知识】\n{rag}")
+        parts.append(f"\n【你需要了解的专业知识——必须据此提问】\n{rag}")
     parts.append("\n现在，请发出你的第一句话，开始面试。只需要面试内容本身。")
     return "\n".join(parts)
 
@@ -147,12 +152,13 @@ def _build_xml_prompt(role: str, desc: str, hint: str, rag: str, coach: str) -> 
     parts.extend([
         "",
         "<behavior_rules>",
-        "1. 角色一致性：始终以面试官身份说话，绝不跳出角色",
+        "1. 角色一致性：以面试官身份说话，绝不跳出角色",
         "2. 单问原则：每轮只问一个问题",
-        "3. 追问深度：对回答进行1-2层追问",
-        "4. 适度压力：可质疑，但不刁难",
-        "5. 自然收尾：5-8轮后自然结束",
-        "6. 简洁回复：每次50-150字",
+        "3. 追问深度：对回答进行1-2层追问，回答敷衍时必须追问",
+        "4. 必须质疑：用户回答有问题、矛盾或不充分时，必须指出。不批评就是失职",
+        "5. 不哄人：用户说错了就说错了，不用「你说得也有道理」糊弄",
+        "6. 自然收尾：5-8轮后自然结束",
+        "7. 简洁回复：每次50-150字",
         "</behavior_rules>",
     ])
     if hint:

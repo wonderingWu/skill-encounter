@@ -175,31 +175,37 @@ async def send_message(req: PracticeMessageRequest, request: Request):
     if len(session["messages"]) > 10:
         session["messages"] = compact_for_continuation(session["messages"], keep_recent=3)
 
-    # JIT RAG
+    # JIT RAG — 每轮检索，确保面试有行业知识支撑
     rag_context = ""
-    if session["round"] <= 3 or session["round"] % 3 == 1:
-        rag_context = retrieve(scene_id=scene.id, query=req.message, k=2)
-        if rag_context:
-            session["rag_used"] = True
+    rag_context = retrieve(scene_id=scene.id, query=req.message, k=3)
+    if rag_context:
+        session["rag_used"] = True
 
     # 构建本轮 system prompt（注入教练人格）
     coach = session.get("coach")
     coach_context = ""
     if coach:
-        coach_context = f"你的人格底色：{coach.personality}\n你的说话风格：{coach.speaking_style}"
+        # 教练人格以指令格式注入（而非散文），与 behavior_rules 同级
+        personality = getattr(coach, 'personality', '')
+        speaking_style = getattr(coach, 'speaking_style', '')
+        coach_context = f"{personality}\n【说话风格】{speaking_style}" if personality else ""
+
     current_sp = build_interviewer_system_prompt(
         interviewer_role=scene.interviewer_role,
         scene_description=scene.description,
         difficulty_hint=(
-            f"第{session['round']}轮。{'请保持追问深度' if session['round'] <= 5 else '在2-3轮内自然收尾'}"
+            f"第{session['round']}轮。{'必须追问用户回答中的薄弱点' if session['round'] <= 5 else '在2-3轮内自然收尾'}"
         ),
         rag_context=rag_context,
         coach_context=coach_context,
     )
 
+    # 传对话历史给 LLM（排除 system 消息，避免和当前 sp 重复）
+    history = [m for m in session["messages"] if m["role"] != "system"]
     reply, usage_msg = generate(
         prompt=req.message, system_prompt=current_sp,
-        temperature=0.4, max_tokens=256,
+        temperature=0.4, max_tokens=512,
+        history=history,
     )
     session["messages"].append({"role": "assistant", "content": reply})
     session["round"] += 1

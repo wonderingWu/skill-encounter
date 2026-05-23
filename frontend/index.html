@@ -586,6 +586,7 @@ async function loadScenes(){
     }catch(e){console.error('加载场景失败',e);scenesData=[]}
     filterScenes();
 }
+function filterScenes(){
     const q=(document.getElementById('search').value||'').toLowerCase();
     let list=scenesData;
     if(q) list=list.filter(s=>s.title.includes(q)||s.description.includes(q)||(s.tags||[]).some(t=>t.includes(q)));
