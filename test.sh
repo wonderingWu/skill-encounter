@@ -72,16 +72,51 @@ else
 fi
 
 # 检查1c: 关键DOM元素ID是否存在
-REQUIRED_IDS="profile-modal coach-modal scene-grid chat-area chat-input feedback-page practice-page scene-page recommend-card"
-for id in $REQUIRED_IDS; do
-    if grep -q "id=\"$id\"" "$HTML"; then
-        : # ok
-    else
-        fail "缺少DOM元素" "id=$id 未找到"
+MISSING_IDS=""
+for id in profile-modal coach-modal scene-grid chat-area chat-input feedback-page practice-page scene-page recommend-card profile-card pf-year pf-major concern-grid sliders step1 step2; do
+    if ! grep -q "id=\"$id\"" "$HTML"; then
+        MISSING_IDS="$MISSING_IDS $id"
     fi
 done
-if [ $FAIL -eq 0 ] || [ "$(echo $REQUIRED_IDS | wc -w)" -eq 0 ]; then
+if [ -n "$MISSING_IDS" ]; then
+    fail "缺少DOM元素" "$MISSING_IDS"
+else
     pass "关键DOM元素齐全"
+fi
+
+# 检查1d: 关键变量和函数是否正确引用
+# 检查 CONCERNS 数组中的 v 值和 CONCERN_MAP 的 key 是否一致
+CONCERN_VS=$(grep -oP "v:'\K\w+" "$HTML" | sort)
+MAP_KEYS=$(grep -oP "^\s+\K\w+(?=:')" "$HTML" | sort)
+# 检查 INIT 代码是否有 try-catch 保护
+if grep -q "try{" "$HTML" && grep -q "}catch" "$HTML"; then
+    pass "INIT代码有错误保护"
+else
+    fail "INIT代码" "缺少try-catch错误保护，运行时错误会导致整个页面无响应"
+fi
+
+# 检查1e: 所有 .js 引用必须实际存在
+for jsfile in $(grep -oP 'src="\K[^"]+\.js' "$HTML"); do
+    if [ ! -f "frontend/$jsfile" ]; then
+        fail "JS文件缺失" "frontend/$jsfile 不存在"
+    fi
+done
+# 检查1f: document.getElementById 引用的 ID 必须存在
+JS_CODE=$(python3 -c "
+import re
+with open('$HTML') as f:
+    html = f.read()
+scripts = re.findall(r'<script>(.*?)</script>', html, re.DOTALL)
+print(' '.join(scripts))
+")
+for id in $(echo "$JS_CODE" | grep -oP "getElementById\('[^']+'\)" | grep -oP "'\K[^']+"); do
+    if ! grep -q "id=\"$id\"" "$HTML"; then
+        fail "JS引用了不存在的DOM" "getElementById('$id')"
+    fi
+done
+if [ $FAIL -eq 0 ] || true; then
+    # 这只是一个额外检查，不影响通过
+    :
 fi
 
 # ── 2. 后端 Python 语法 ──

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
-<title>技能奇遇</title>
+<title>觉醒奇遇</title>
 <style>
 :root{
     --bg:#f5f5f7;--card:#fff;--text:#1d1d1f;--text2:#86868b;
@@ -192,7 +192,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);-webkit-font
 
 <!-- ═════ SIDEBAR ═════ -->
 <aside id="sidebar">
-    <div class="header"><h1>🎯 技能奇遇</h1><p id="header-sub">选一个你脑子里想过的问题</p></div>
+    <div class="header"><h1>🎯 觉醒奇遇</h1><p id="header-sub">选一个你脑子里想过的问题</p></div>
 
     <!-- profile -->
     <div class="profile-card" id="profile-card">
@@ -760,12 +760,15 @@ function showFeedback(fb){
 }
 
 // ═══════ INIT ═══════
+window.onerror=function(msg,url,line){console.error('JS Error:',msg,'line',line);return false;};
+try{
 document.getElementById('chat-input').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg();}});
 document.getElementById('profile-modal').addEventListener('click',e=>{if(e.target===e.currentTarget)closeProfile()});
 document.getElementById('coach-modal').addEventListener('click',e=>{if(e.target===e.currentTarget)closeCoachPicker()});
 loadProfile();
 loadCoaches();
 loadScenes();
+}catch(e){console.error('Init error:',e);alert('页面初始化出错: '+e.message);}
 </script>
 </body>
 </html>

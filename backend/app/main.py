@@ -34,9 +34,9 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="技能奇遇 (Skill Encounter)",
-    description="AI 驱动的轻社交 × 就业技能模拟平台",
-    version="0.1.0",
+    title="觉醒奇遇 (Awakening Encounter)",
+    description="AI 驱动的大学英雄之旅实操训练平台",
+    version="0.2.0",
     lifespan=lifespan,
 )
 
@@ -57,7 +57,7 @@ app.include_router(coach.router)
 # 健康检查
 @app.get("/api/health")
 async def health():
-    return {"status": "ok", "service": "skill-encounter", "version": "0.1.0"}
+    return {"status": "ok", "service": "awakening-encounter", "version": "0.2.0"}
 
 # 静态文件（前端）—— 兼容本地和 Docker 环境
 import os as _os
