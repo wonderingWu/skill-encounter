@@ -1,0 +1,237 @@
+#!/bin/bash
+# 技能奇遇 自动测试脚本
+# 用法: bash test.sh
+# 在 git push 前运行，拦截基本错误
+set -e
+cd "$(dirname "$0")"
+PASS=0; FAIL=0
+RED='\033[31m'; GREEN='\033[32m'; YELLOW='\033[33m'; NC='\033[0m'
+
+pass(){ echo -e "  ${GREEN}✓${NC} $1"; PASS=$((PASS+1)); }
+fail(){ echo -e "  ${RED}✗${NC} $1 — $2"; FAIL=$((FAIL+1)); }
+
+echo "══════════════════════════════════════"
+echo " 技能奇遇 预发布测试"
+echo "══════════════════════════════════════"
+
+# ── 1. 前端 JS 语法检查 ──
+echo ""
+echo "📋 前端 JS 语法"
+
+# 检查1a: 函数声明无裸奔代码
+HTML="frontend/index.html"
+# 提取 <script> 内的代码，检查是否在函数体外有赋值语句（被吃掉的函数声明的典型症状）
+BARE_CODE=$(python3 -c "
+import re
+with open('$HTML') as f:
+    html = f.read()
+scripts = re.findall(r'<script>(.*?)</script>', html, re.DOTALL)
+for s in scripts:
+    lines = s.strip().split('\n')
+    depth = 0
+    for i, line in enumerate(lines):
+        stripped = line.strip()
+        if not stripped or stripped.startswith('//'):
+            continue
+        # 跟踪大括号深度
+        depth += stripped.count('{') - stripped.count('}')
+        # 如果在全局作用域(depth<=0)出现了赋值/表达式语句，且不在函数声明内
+        if depth <= 0 and ('= document.' in stripped or '= await' in stripped or '= api(' in stripped):
+            if 'function ' not in line and 'const ' not in line and 'let ' not in line and 'var ' not in line:
+                print(f'  ⚠ 全局作用域疑似裸奔代码 行{i+1}: {stripped[:80]}')
+")
+if [ -n "$BARE_CODE" ]; then
+    fail "JS裸奔代码" "函数声明可能被吃掉了，检查是否有代码在function体外"
+    echo "$BARE_CODE"
+else
+    pass "无全局裸奔代码"
+fi
+
+# 检查1b: onclick 引用的函数是否都存在
+FUNCS_IN_HTML=$(python3 -c "
+import re
+with open('$HTML') as f:
+    html = f.read()
+scripts = re.findall(r'<script>(.*?)</script>', html, re.DOTALL)
+all_code = ' '.join(scripts)
+# 找所有函数名
+defined = set(re.findall(r'function\s+(\w+)', all_code))
+defined.update(re.findall(r'async\s+function\s+(\w+)', all_code))
+# 找所有 onclick 调用的函数
+onclick_calls = set(re.findall(r'onclick=\"(\w+)\(', html))
+onclick_calls.update(re.findall(r'onclick=\"(\w+)\(', html))
+missing = onclick_calls - defined
+for m in sorted(missing):
+    print(f'  ⚠ onclick引用但未定义: {m}')
+")
+if [ -n "$FUNCS_IN_HTML" ]; then
+    fail "onclick引用缺失" "以下函数在onclick中被调用但未定义"
+    echo "$FUNCS_IN_HTML"
+else
+    pass "所有onclick引用都有对应函数"
+fi
+
+# 检查1c: 关键DOM元素ID是否存在
+REQUIRED_IDS="profile-modal coach-modal scene-grid chat-area chat-input feedback-page practice-page scene-page recommend-card"
+for id in $REQUIRED_IDS; do
+    if grep -q "id=\"$id\"" "$HTML"; then
+        : # ok
+    else
+        fail "缺少DOM元素" "id=$id 未找到"
+    fi
+done
+if [ $FAIL -eq 0 ] || [ "$(echo $REQUIRED_IDS | wc -w)" -eq 0 ]; then
+    pass "关键DOM元素齐全"
+fi
+
+# ── 2. 后端 Python 语法 ──
+echo ""
+echo "📋 后端 Python 语法"
+SYNTAX_OK=true
+for f in backend/app/**/*.py; do
+    if ! python3 -c "import ast; ast.parse(open('$f').read())" 2>/dev/null; then
+        fail "Python语法错误" "$f"
+        SYNTAX_OK=false
+    fi
+done
+if $SYNTAX_OK; then
+    pass "所有Python文件语法正确"
+fi
+
+# ── 3. 后端关键导入检查（需要依赖，Docker环境可用） ──
+echo ""
+echo "📋 后端导入链"
+cd backend
+HAS_DEPS=$(python3 -c "import pydantic" 2>/dev/null && echo 1 || echo 0)
+if [ "$HAS_DEPS" = "1" ]; then
+    IMPORT_OK=true
+    for check in "from app.data.coaches import PRESET_COACHES" \
+                 "from app.data.scenes import SCENES" \
+                 "from app.models.schemas import Coach, Scene, HexagonScore" \
+                 "from app.services.llm import generate, build_interviewer_system_prompt" \
+                 "from app.services.rag import retrieve, init_knowledge_base" \
+                 "from app.services.evaluator import evaluate_hexagon, evaluate_session"; do
+        if python3 -c "$check" 2>/dev/null; then : ; else
+            fail "导入失败" "$check"
+            IMPORT_OK=false
+        fi
+    done
+    if $IMPORT_OK; then pass "所有关键模块可导入"; fi
+else
+    echo -e "  ${YELLOW}⊘${NC} 跳过（缺少pydantic等依赖，需在Docker内运行）"
+fi
+cd ..
+
+# ── 4. 教练数据完整性（需要依赖） ──
+echo ""
+echo "📋 教练数据完整性"
+if [ "$HAS_DEPS" = "1" ]; then
+    cd backend
+    python3 -c "
+import sys; sys.path.insert(0,'.')
+from app.data.coaches import PRESET_COACHES, COACH_RECOMMEND_REASONS
+from app.models.schemas import HEXAGON_DIMENSIONS
+dim_ids = {d['id'] for d in HEXAGON_DIMENSIONS}
+errors = []
+if len(PRESET_COACHES) < 8:
+    errors.append(f'教练太少 ({len(PRESET_COACHES)}), 预期>=8')
+for c in PRESET_COACHES:
+    if not c.strengths: errors.append(f'{c.name} strengths为空')
+    for s in c.strengths:
+        if s not in dim_ids: errors.append(f'{c.name} strengths含无效维度: {s}')
+    if not c.personality or len(c.personality) < 20:
+        errors.append(f'{c.name} personality过短或为空')
+missing_reasons = [c.id for c in PRESET_COACHES if c.id not in COACH_RECOMMEND_REASONS]
+if missing_reasons: errors.append(f'缺少推荐理由: {missing_reasons}')
+if errors:
+    for e in errors: print(f'ERROR: {e}')
+    sys.exit(1)
+print(f'OK: {len(PRESET_COACHES)}个教练, 推荐理由覆盖{len(COACH_RECOMMEND_REASONS)}个')
+" 2>/dev/null
+    if [ $? -eq 0 ]; then pass "教练数据完整"
+    else fail "教练数据" "检查教练数量和字段完整性"; fi
+    cd ..
+else
+    # 无依赖时用grep做基本检查
+    COACH_COUNT=$(grep -c 'id="' backend/app/data/coaches.py)
+    REASON_COUNT=$(grep -c ':' backend/app/data/coaches.py | head -1)  # approximate
+    if [ "$COACH_COUNT" -ge 8 ]; then
+        pass "教练数量 >=8 (grep检查: $COACH_COUNT个)"
+    else
+        fail "教练数据" "教练数量不足: $COACH_COUNT"
+    fi
+fi
+
+# ── 5. API端点检查（需要依赖） ──
+echo ""
+echo "📋 API路由注册"
+if [ "$HAS_DEPS" = "1" ]; then
+    cd backend
+    python3 -c "
+import sys; sys.path.insert(0,'.')
+from app.main import app
+routes = [r.path for r in app.routes]
+required = ['/api/health', '/api/scenes', '/api/practice/start',
+            '/api/practice/message', '/api/practice/end', '/api/coaches',
+            '/api/coaches/recommend', '/api/practice/profile']
+missing = [r for r in required if r not in routes]
+if missing:
+    print(f'ERROR: 缺少路由: {missing}')
+    sys.exit(1)
+print(f'OK: {len(routes)}个路由注册')
+" 2>/dev/null
+    if [ $? -eq 0 ]; then pass "API路由完整"
+    else fail "API路由" "检查路由注册"; fi
+    cd ..
+else
+    echo -e "  ${YELLOW}⊘${NC} 跳过（缺少依赖）"
+fi
+
+# ── 6. LLM prompt 质量检查 ──
+echo ""
+echo "📋 LLM Prompt质量"
+PROMPT_CHECKS_OK=true
+# 检查行为规则中是否包含「必须」而非「可以」
+if grep -q "必须质疑\|必须指出\|不批评就是失职" backend/app/services/llm.py; then
+    pass "行为规则含强制性指令"
+else
+    fail "行为规则" "缺少强制性指令(必须质疑/必须指出)"
+    PROMPT_CHECKS_OK=false
+fi
+
+# 检查 generate() 是否支持 history 参数
+if grep -q "history.*list\[dict\]" backend/app/services/llm.py; then
+    pass "generate()支持对话历史"
+else
+    fail "generate()" "不支持history参数——LLM每轮都是第一次见你"
+    PROMPT_CHECKS_OK=false
+fi
+
+# 检查 message 端点是否传了 history
+if grep -q "history=history" backend/app/routers/practice.py; then
+    pass "消息端点传入对话历史"
+else
+    fail "消息端点" "未传入history——LLM每轮无上下文"
+    PROMPT_CHECKS_OK=false
+fi
+
+# 检查 RAG 是否每轮检索
+if grep -q "retrieve.*k=3" backend/app/routers/practice.py && ! grep -q "round % 3" backend/app/routers/practice.py; then
+    pass "RAG每轮检索"
+else
+    fail "RAG" "不是每轮检索或k值不对"
+    PROMPT_CHECKS_OK=false
+fi
+
+# ── 汇总 ──
+echo ""
+echo "══════════════════════════════════════"
+if [ $FAIL -eq 0 ]; then
+    echo -e " ${GREEN}✅ 全部通过 ($PASS项)${NC}"
+    echo " 可以安全 push"
+    exit 0
+else
+    echo -e " ${RED}❌ $FAIL 项失败, $PASS 项通过${NC}"
+    echo " 修复后再 push"
+    exit 1
+fi
