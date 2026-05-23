@@ -192,7 +192,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);-webkit-font
 
 <!-- ═════ SIDEBAR ═════ -->
 <aside id="sidebar">
-    <div class="header"><h1>🎯 觉醒奇遇</h1><p id="header-sub">选一个你脑子里想过的问题</p></div>
+    <div class="header"><h1>🎯 觉醒奇遇</h1><p id="header-sub">认识自己，从一次对话开始</p></div>
 
     <!-- profile -->
     <div class="profile-card" id="profile-card">
@@ -214,23 +214,14 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);-webkit-font
         </div>
         <div class="coach-change">换</div>
     </div>
-    <!-- recommend card (shown after profile save) -->
-    <div class="recommend-card" id="recommend-card" style="display:none"></div>
-
-    <!-- hex -->
-    <div class="hex-card"><h3>📊 六维能力</h3>
-        <div class="hex-chart" id="hex-svg"></div>
-        <div class="hex-labels" id="hex-labels"></div>
-    </div>
-
-    <div class="search-box"><input type="text" id="search" placeholder="搜一下…" oninput="filterScenes()"></div>
-    <div class="cat-list" id="cat-list"></div>
-    <div class="theme-dots" id="theme-dots"></div>
 </aside>
 
 <!-- ═════ MAIN ═════ -->
 <main id="main">
-<div id="scene-page" class="page active"><div class="scene-grid" id="scene-grid"><div class="loading">加载中…</div></div></div>
+<div id="scene-page" class="page active">
+    <div class="recommend-card" id="recommend-card" style="display:none"></div>
+    <div class="scene-grid" id="scene-grid"><div class="loading">加载中…</div></div>
+</div>
 
 <div id="practice-page" class="page">
     <div class="practice-header">
@@ -341,10 +332,6 @@ const CONCERNS=[
     {v:'family',emoji:'🏠',label:'家里人不理解我'},
     {v:'self_worth',emoji:'🪞',label:'总觉得自己不够好'},
 ];
-const CATS=[
-    {id:'all',emoji:'🏠',label:'全部'},{id:'job',emoji:'🎯',label:'求职破局'},
-    {id:'express',emoji:'🗣️',label:'表达突破'},{id:'self',emoji:'🧠',label:'了解自己'},{id:'ai',emoji:'🔮',label:'AI时代'},
-];
 let scenesData=[]; // 从后端 API 加载
 const DIMS=[
     {id:'expression',emoji:'💬',name:'表达影响力'},
@@ -365,41 +352,6 @@ const CONCERN_MAP={
     self_worth:'speech-improv-beginner',
 };
 
-// ═══════ THEME ═══════
-const themes={
-    apple:{'--bg':'#f5f5f7','--card':'#fff','--text':'#1d1d1f','--text2':'#86868b','--accent':'#0071e3',sub:'选一个你脑子里想过的问题'},
-    warm:{'--bg':'#fef9ef','--card':'#fffdf7','--text':'#3d3027','--text2':'#8b7e6e','--accent':'#e8875b',sub:'慢慢来，我们都经历过这些'},
-    cyber:{'--bg':'#0a0e1a','--card':'#141829','--text':'#e0e6ff','--text2':'#6b7394','--accent':'#00f0ff',sub:'系统启动中…'},
-    jike:{'--bg':'#f8f5f0','--card':'#fffdf9','--text':'#2c2c2c','--text2':'#999','--accent':'#ffc244',sub:'今天想突破什么？'}
-};
-let curTheme='apple';
-function setTheme(n){
-    curTheme=n;const t=themes[n];
-    Object.entries(t).forEach(([k,v])=>{if(k.startsWith('--'))document.documentElement.style.setProperty(k,v)});
-    document.getElementById('header-sub').textContent=t.sub;
-    document.querySelectorAll('.theme-dot').forEach(d=>d.classList.toggle('active',d.dataset.t===n));
-}
-(function initThemes(){
-    const bar=document.getElementById('theme-dots');
-    const cs={apple:'#0071e3',warm:'#e8875b',cyber:'#00f0ff',jike:'#ffc244'};
-    Object.entries(themes).forEach(([k,t])=>{
-        const d=document.createElement('div');d.className='theme-dot'+(k===curTheme?' active':'');d.dataset.t=k;
-        d.style.background=cs[k];d.title=t.label;d.onclick=()=>setTheme(k);bar.appendChild(d);
-    });
-})();
-
-// ═══════ CATEGORIES ═══════
-let curCat='all';
-(function initCats(){
-    const el=document.getElementById('cat-list');
-    CATS.forEach(c=>{
-        const d=document.createElement('div');d.className='cat-item'+(c.id===curCat?' active':'');
-        d.innerHTML=`<span class="cat-emoji">${c.emoji}</span>${c.label}`;
-        d.onclick=()=>{curCat=c.id;loadScenes();document.querySelectorAll('.cat-item').forEach(x=>x.classList.remove('active'));d.classList.add('active')};
-        el.appendChild(d);
-    });
-})();
-
 // ═══════ PROFILE ═══════
 let profile={year:'',major:'',concerns:[]};
 let hexSelf=null,hexAI=null,hexHistory=[];
@@ -415,14 +367,11 @@ async function loadProfile(){
         }
     }catch(e){}
     renderProfile();
-    drawHexagon();
 }
 
 function renderProfile(){
     const hasProfile=profile.year||profile.concerns?.length;
     if(hasProfile){
-        const topConcern=profile.concerns?.[0];
-        const co=CONCERNS.find(x=>x.v===topConcern);
         document.getElementById('pf-name').textContent=`${profile.year||''} · ${profile.major||''}`;
         document.getElementById('pf-avatar').textContent=profile.year?profile.year[0]:'👤';
     }else{
@@ -438,7 +387,6 @@ function renderProfile(){
     }else{
         tags.innerHTML='<span class="pf-empty">花30秒完善画像，AI给你精准推荐</span>';
     }
-    // update concern selections in modal
     document.querySelectorAll('.concern-item').forEach(el=>{
         el.classList.toggle('selected',profile.concerns?.includes(el.dataset.v));
     });
@@ -463,7 +411,6 @@ function showStep(n){
     document.querySelectorAll('.step').forEach(s=>s.classList.remove('active'));
     document.getElementById('step'+n).classList.add('active');
     if(n===2){
-        // populate sliders
         document.getElementById('sliders').innerHTML=DIMS.map(d=>{
             const v=hexSelf?hexSelf[d.id]:1;
             return `<div class="slider-row">
@@ -496,11 +443,10 @@ async function saveProfile(){
     }catch(e){
         console.error('保存画像失败:',e);
         btn.disabled=false; btn.textContent='✅ 完成画像';
-        return; // 不关闭弹窗，让用户看到错误后可以重试
+        return;
     }
     closeProfile();
     renderProfile();
-    drawHexagon();
     loadScenes();
     await recommendCoaches();
 }
@@ -513,7 +459,6 @@ async function recommendCoaches(){
         })});
         const recs=data.recommendations||[];
         if(!recs.length) return;
-        // 展示推荐卡片
         const card=document.getElementById('recommend-card');
         const best=recs[0];const alt=recs[1];
         card.innerHTML=`
@@ -569,29 +514,6 @@ function selectRecommendedCoach(id){
     });
 })();
 
-// ═══════ HEXAGON ═══════
-function hexScores(){return hexAI||hexSelf||{expression:1,logic:1,self_awareness:1,collaboration:1,ai_literacy:1,adaptability:1}}
-function hexScore(dimId){return hexScores()[dimId]||1}
-function drawHexagon(){
-    const h=hexScores();const dims=DIMS.map(d=>d.id);
-    const vals=dims.map(d=>h[d]||1);
-    const cx=100,cy=100,r=80,angles=dims.map((_,i)=>-Math.PI/2+i*2*Math.PI/6);
-    const pts=angles.map((a,i)=>[cx+r*vals[i]/5*Math.cos(a),cy+r*vals[i]/5*Math.sin(a)]);
-    let svg=`<svg width="200" height="200" viewBox="0 0 200 200">`;
-    for(let lvl=1;lvl<=5;lvl++){
-        const gp=angles.map(a=>[cx+r*lvl/5*Math.cos(a),cy+r*lvl/5*Math.sin(a)]);
-        svg+=`<polygon points="${gp.map(p=>p.join(',')).join(' ')}" fill="none" stroke="#e5e5ea" stroke-width="1"/>`;
-    }
-    svg+=`<polygon points="${pts.map(p=>p.join(',')).join(' ')}" fill="var(--accent)" fill-opacity="0.15" stroke="var(--accent)" stroke-width="2"/>`;
-    pts.forEach(p=>{svg+=`<circle cx="${p[0]}" cy="${p[1]}" r="3" fill="var(--accent)"/>`});
-    svg+=`</svg>`;
-    document.getElementById('hex-svg').innerHTML=svg;
-    document.getElementById('hex-labels').innerHTML=DIMS.map(d=>{
-        const v=hexScore(d.id);
-        return `<div class="hex-label"><div class="hl-score">${v.toFixed(1)}</div>${d.emoji} ${d.name}</div>`;
-    }).join('');
-}
-
 // ═══════ API ═══════
 async function api(path,opts={}){
     const res=await fetch(path,{headers:{'Content-Type':'application/json'},...opts});
@@ -601,16 +523,14 @@ async function api(path,opts={}){
 
 async function loadScenes(){
     try{
-        const params=curCat!=='all'?`?cat=${curCat}`:'';
-        const data=await api('/api/scenes'+params);
+        const data=await api('/api/scenes');
+
         scenesData=data.scenes||[];
     }catch(e){console.error('加载场景失败',e);scenesData=[]}
     filterScenes();
 }
 function filterScenes(){
-    const q=(document.getElementById('search').value||'').toLowerCase();
     let list=scenesData;
-    if(q) list=list.filter(s=>s.title.includes(q)||s.description.includes(q)||(s.tags||[]).some(t=>t.includes(q)));
     const recScene=profile.concerns?.length?CONCERN_MAP[profile.concerns[0]]:null;
     const grid=document.getElementById('scene-grid');
     if(!list.length){grid.innerHTML='<div class="no-result">没有匹配的场景</div>';return}
