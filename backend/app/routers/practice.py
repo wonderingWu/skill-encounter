@@ -139,7 +139,7 @@ async def start_practice(req: PracticeStartRequest):
         coach_context=coach_personality,
     )
     # 开场词：教练自报身份，不预设用户目标
-    opening_prompt = f"你正在和一位学员对话。{'你的名字是' + coach_name if coach_name else ''}。先做简单的自我介绍（一句话），然后问对方今天想练什么、有什么目标。自然、简洁。"
+    opening_prompt = f"你正在和一位学员对话。{'你的名字是' + coach_name if coach_name else ''}。做简短自我介绍（1-2句，包含你的身份和经历），然后问对方今天想聊什么。不要假设对方的专业、年级或求职方向。自然、简洁。"
     opening, usage_start = generate(
         prompt=opening_prompt,
         system_prompt=system_prompt, temperature=0.6, max_tokens=256,
