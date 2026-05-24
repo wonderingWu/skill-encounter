@@ -517,7 +517,7 @@ function selectRecommendedCoach(id){
 // ═══════ API ═══════
 async function api(path,opts={}){
     const res=await fetch(path,{headers:{'Content-Type':'application/json'},...opts});
-    if(!res.ok){const e=await res.json().catch(()=>({detail:res.statusText}));throw new Error(e.detail);}
+    if(!res.ok){const e=await res.json().catch(()=>({detail:res.statusText}));const msg=typeof e.detail==='string'?e.detail:JSON.stringify(e.detail);throw new Error(msg);}
     return res.json();
 }
 

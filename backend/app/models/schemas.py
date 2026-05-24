@@ -175,10 +175,6 @@ class ProfileRequest(BaseModel):
     major: str = Field(default="", description="专业")
     concerns: list[str] = Field(default_factory=list, description="担忧标签")
     hexagon_self: Optional[dict] = Field(default=None, description="六维自评 {expression:float,...}")
-    self_assessment: Optional[HexagonSelfAssessment] = None
-    ai_assessments: list[dict] = Field(default_factory=list)  # [{session_id, scene, scores, timestamp}]
-    latest_scores: HexagonScore = Field(...)
-    gap_dimensions: list[str] = Field(default_factory=list)  # 当前差距最大的维度
 
 
 class GapDetection(BaseModel):
