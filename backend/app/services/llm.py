@@ -56,6 +56,7 @@ def generate(
             messages=messages,
             temperature=temperature,
             max_tokens=max_tokens,
+            timeout=30,  # 30秒超时
         )
         text = response.choices[0].message.content or ""
         usage = {
@@ -64,6 +65,19 @@ def generate(
         }
         return text, usage
     except Exception as e:
+        if "timeout" in str(e).lower() or "connection" in str(e).lower():
+            logger.warning(f"LLM 调用超时，重试中: {e}")
+            try:
+                response = client.chat.completions.create(
+                    model=LLM_MODEL, messages=messages,
+                    temperature=temperature, max_tokens=max_tokens, timeout=30,
+                )
+                text = response.choices[0].message.content or ""
+                usage = {"input": response.usage.prompt_tokens if response.usage else 0,
+                         "output": response.usage.completion_tokens if response.usage else 0}
+                return text, usage
+            except Exception as e2:
+                raise RuntimeError(f"LLM 调用失败（重试后仍失败）: {e2}")
         raise RuntimeError(f"LLM 调用失败: {e}")
 
 

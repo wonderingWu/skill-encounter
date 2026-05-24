@@ -211,8 +211,10 @@ async def send_message(req: PracticeMessageRequest, request: Request):
         coach_context=coach_context,
     )
 
-    # 传对话历史给 LLM（排除 system 消息，避免和当前 sp 重复）
+    # 传对话历史给 LLM（排除 system 消息，只保留最近 6 条防止上下文过长超时）
     history = [m for m in session["messages"] if m["role"] != "system"]
+    if len(history) > 6:
+        history = history[-6:]
     reply, usage_msg = generate(
         prompt=req.message, system_prompt=current_sp,
         temperature=0.4, max_tokens=512,
