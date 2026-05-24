@@ -545,17 +545,22 @@ function filterScenes(){
 
 // ═══════ PAGES ═══════
 let state={sessionId:null,scene:null,sceneRole:'教练',coachName:'教练'};
-let curCoach={id:'socrates',name:'苏格拉底',emoji:'⚡️',tagline:'我不给你答案，我给你更好的问题'};
+let curCoach=null; // 不设默认，画像完成后由推荐引擎分配
 let coachesData=[];
 async function loadCoaches(){
     try{const data=await api('/api/coaches');coachesData=data.coaches||[];}
     catch(e){console.error('加载教练失败',e);}
-    // 恢复本地存储的教练
     const saved=localStorage.getItem('sk_encounter_coach');
     if(saved){try{const c=JSON.parse(saved);if(c.id)curCoach=c;}catch(e){}}
     renderCoachCard();
 }
 function renderCoachCard(){
+    if(!curCoach){
+        document.getElementById('coach-avatar').textContent='🎭';
+        document.getElementById('coach-name').textContent='选择你的教练';
+        document.getElementById('coach-tagline').textContent='完成画像后AI为你推荐';
+        return;
+    }
     document.getElementById('coach-avatar').textContent=curCoach.emoji||'🤖';
     document.getElementById('coach-name').textContent=curCoach.name||'教练';
     document.getElementById('coach-tagline').textContent=curCoach.tagline||'';
@@ -614,6 +619,11 @@ function goBack(){state.sessionId=null;showPage('scene');document.getElementById
 
 // ═══════ PRACTICE ═══════
 async function start(sceneId){
+    if(!curCoach){
+        alert('请先完成30秒画像，AI会为你推荐专属教练 ✨');
+        openProfile();
+        return;
+    }
     try{
         const body={scene_id:sceneId,coach_id:curCoach.id};
         if(curCoach.id.startsWith('custom_')){
@@ -637,7 +647,7 @@ async function start(sceneId){
 function addMsg(role,content){
     const area=document.getElementById('chat-area');
     const d=document.createElement('div');d.className='msg '+(role==='assistant'?'ai':'user');
-    const aiLabel=`${curCoach.emoji||'💬'} ${curCoach.name||state.sceneRole}`;
+    const aiLabel=curCoach?`${curCoach.emoji||'💬'} ${curCoach.name||state.sceneRole}`:'💬 教练';
     d.innerHTML=`<div class="label">${role==='assistant'?aiLabel:'👤 你'}</div>${esc(content)}`;
     area.appendChild(d);area.scrollTop=area.scrollHeight;
 }

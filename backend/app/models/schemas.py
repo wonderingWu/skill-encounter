@@ -65,7 +65,7 @@ class Message(BaseModel):
 class PracticeStartRequest(BaseModel):
     """开始练习请求"""
     scene_id: str = Field(..., description="选择的场景 ID")
-    coach_id: str = Field(default="socrates", description="选择的教练 ID")
+    coach_id: str = Field(default="", description="选择的教练 ID")
     custom_coach: Optional[dict] = Field(default=None, description="自定义教练数据 {name,emoji,personality}")
 
 
