@@ -183,7 +183,7 @@ async def send_message(req: PracticeMessageRequest, request: Request):
 
     # JIT RAG — 每轮检索，确保面试有行业知识支撑
     rag_context = ""
-    rag_context = retrieve(scene_id=scene.id, query=req.message, k=3)
+    rag_context = retrieve(scene_id=scene.id, query=req.message, k=3, user_concerns=_user_profile.get("concerns"))
     if rag_context:
         session["rag_used"] = True
 
