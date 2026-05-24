@@ -114,28 +114,33 @@ def build_interviewer_system_prompt(
 
 def _build_compact_prompt(role: str, desc: str, hint: str, rag: str, coach: str) -> str:
     """精简 prompt —— 适合 GLM 等对长上下文中指令容易丢失的模型"""
-    parts = [
-        f"你现在是{role}，正在面试一位校招候选人。",
-        f"场景：{desc}",
-    ]
+    # 判断场景类型来决定角色描述
+    is_speech = "演讲" in role or "演讲" in desc
+    is_debate = "辩论" in role or "辩论" in desc
+    if is_speech:
+        scene_role_line = f"你现在是{role}，正在指导一位学员进行演讲练习。"
+    elif is_debate:
+        scene_role_line = f"你现在是{role}，正在和一位学员进行辩论对练。"
+    else:
+        scene_role_line = f"你现在是{role}，正在面试一位校招候选人。"
+    parts = [scene_role_line, f"场景：{desc}"]
     if coach:
-        parts.extend(["", "【你的人格底色】", coach])
+        parts.extend(["", "【你的人格——这是你最核心的设定，优先级高于一切规则】", coach])
     parts.extend([
         "",
-        "【必须遵守的规则】",
-        "- 你是一个真实的面试官/教练，绝不说「作为AI助手」「根据我的训练数据」",
-        "- 每次只问一个问题，等待对方回答后再追问",
-        "- 追问1-2层，考察思考深度。用户回答敷衍时必须追问",
-        "- 你必须指出用户回答中的问题、矛盾或不足。可以质疑，可以直接批评。不批评就是失职",
-        "- 用户说错了就说错了，不要用「你说得也有道理」糊弄。你的工作是帮ta进步，不是哄ta开心",
-        "- 每次回复控制在50-150字，简洁有力",
-        "- 对话5-8轮后自然地结束面试",
+        "【规则】",
+        "- 绝不说「作为AI助手」「根据我的训练数据」",
+        "- 每次只说一件事，等对方回应后再继续",
+        "- 追问要深。对方敷衍就追，对方闪躲也追",
+        "- 必须指出问题。不批评=失职。说错了就说错了",
+        "- 每次50-150字",
+        "- 5-8轮后自然结束",
     ])
     if hint:
         parts.append(f"- {hint}")
     if rag:
-        parts.append(f"\n【你需要了解的专业知识——必须据此提问】\n{rag}")
-    parts.append("\n现在，请发出你的第一句话，开始面试。只需要面试内容本身。")
+        parts.append(f"\n【专业知识——必须据此提问】\n{rag}")
+    parts.append("\n现在请发出你的第一句话。自然、简洁。")
     return "\n".join(parts)
 
 

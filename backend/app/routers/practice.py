@@ -123,8 +123,12 @@ async def start_practice(req: PracticeStartRequest):
             'personality': cc.get('personality', ''), 'speaking_style': '',
         })()
     coach_personality = ""
+    coach_name = ""
     if coach:
-        coach_personality = f"你的人格底色：{coach.personality}\n你的说话风格：{coach.speaking_style}"
+        coach_name = getattr(coach, 'name', '')
+        personality = getattr(coach, 'personality', '')
+        speaking_style = getattr(coach, 'speaking_style', '')
+        coach_personality = f"{personality}\n【说话风格】{speaking_style}" if personality else ""
 
     session_id = str(uuid.uuid4())[:8]
     system_prompt = build_interviewer_system_prompt(
@@ -134,8 +138,10 @@ async def start_practice(req: PracticeStartRequest):
         rag_context="",
         coach_context=coach_personality,
     )
+    # 开场词让教练自报身份
+    opening_prompt = f"请以{scene.interviewer_role}的身份发出第一句话。{'你的名字是' + coach_name + '，' if coach_name else ''}自然、简洁地开始对话。"
     opening, usage_start = generate(
-        prompt="请以面试官身份发出第一道题目或开场白。简洁、自然。",
+        prompt=opening_prompt,
         system_prompt=system_prompt, temperature=0.6, max_tokens=256,
     )
     _sessions[session_id] = {

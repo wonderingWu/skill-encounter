@@ -544,7 +544,7 @@ function filterScenes(){
 }
 
 // ═══════ PAGES ═══════
-let state={sessionId:null,scene:null};
+let state={sessionId:null,scene:null,sceneRole:'教练',coachName:'教练'};
 let curCoach={id:'socrates',name:'苏格拉底',emoji:'⚡️',tagline:'我不给你答案，我给你更好的问题'};
 let coachesData=[];
 async function loadCoaches(){
@@ -621,6 +621,8 @@ async function start(sceneId){
         }
         const data=await api('/api/practice/start',{method:'POST',body:JSON.stringify(body)});
         state.sessionId=data.session_id;state.scene=data.scene;
+        state.sceneRole=data.scene?.interviewer_role||'教练';
+        state.coachName=curCoach.name||'教练';
         const sc=data.scene;
         document.getElementById('prac-emoji').textContent=curCoach.emoji||sc?.emoji||'💬';
         document.getElementById('prac-title').textContent=sc?.title||'';
@@ -635,7 +637,8 @@ async function start(sceneId){
 function addMsg(role,content){
     const area=document.getElementById('chat-area');
     const d=document.createElement('div');d.className='msg '+(role==='assistant'?'ai':'user');
-    d.innerHTML=`<div class="label">${role==='assistant'?'💬 面试官':'👤 你'}</div>${esc(content)}`;
+    const aiLabel=`${curCoach.emoji||'💬'} ${curCoach.name||state.sceneRole}`;
+    d.innerHTML=`<div class="label">${role==='assistant'?aiLabel:'👤 你'}</div>${esc(content)}`;
     area.appendChild(d);area.scrollTop=area.scrollHeight;
 }
 function esc(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML.replace(/\n/g,'<br>');}
