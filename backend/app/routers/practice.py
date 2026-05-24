@@ -138,8 +138,13 @@ async def start_practice(req: PracticeStartRequest):
         rag_context="",
         coach_context=coach_personality,
     )
-    # 开场词：教练自报身份，不预设用户目标
-    opening_prompt = f"你正在和一位学员对话。{'你的名字是' + coach_name if coach_name else ''}。做简短自我介绍（1-2句，包含你的身份和经历），然后问对方今天想聊什么。不要假设对方的专业、年级或求职方向。自然、简洁。"
+    # 开场词：教练自报身份 + 确认场景 + 开始
+    scene_context = f"场景「{scene.title}」：{scene.description}"
+    opening_prompt = (
+        f"你正在和一位学员对话。{'你的名字是' + coach_name + '，' if coach_name else ''}"
+        f"做简短自我介绍（1-2句）。用户选择了{scene_context}。"
+        "不要问「你想聊什么」——用户已经选了场景。直接进入场景开始练习。自然、简洁。"
+    )
     opening, usage_start = generate(
         prompt=opening_prompt,
         system_prompt=system_prompt, temperature=0.6, max_tokens=256,
