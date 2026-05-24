@@ -395,7 +395,7 @@ function renderProfile(){
 // ═══════ PROFILE MODAL ═══════
 let profileStep=1,selectedConcerns=[];
 function openProfile(){
-    selectedConcerns=[...profile.concerns];
+    selectedConcerns=[...(profile.concerns||[])];
     document.getElementById('pf-year').value=profile.year||'';
     document.getElementById('pf-major').value=profile.major||'';
     document.querySelectorAll('.concern-item').forEach(el=>{
