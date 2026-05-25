@@ -201,6 +201,21 @@ COACH_RECOMMEND_REASONS = {
     "xiaoye": "你需要看到另一种活法——标准答案之外，路多着呢",
 }
 
+# CS 场景的教练权重调整
+# 追问型教练在 CS 场景下更适合（技术决策追问需要逻辑能力）
+# 同伴型教练在 CS 场景下降权（他们的记忆库是日常挫败，不涉及技术场景）
+CS_SCENE_BOOST = ["socrates", "einstein", "musk"]  # 追问/逻辑型
+CS_SCENE_PENALTY = ["atie", "adu", "afei", "xiaoye"]  # 同伴型降权
+CS_BOOST_SCORE = 5
+CS_PENALTY_SCORE = -3
+
+
+def _is_cs_scene(scene_id: str | None) -> bool:
+    """判断是否为 CS 技术类场景"""
+    if not scene_id:
+        return False
+    return scene_id.startswith("code-narrative") or scene_id.startswith("project-defense")
+
 
 def get_coach_by_id(coach_id: str) -> Coach | None:
     """根据 ID 获取教练"""
@@ -218,14 +233,17 @@ def list_coaches() -> list[Coach]:
 def recommend_coaches(
     concerns: list[str] | None = None,
     hexagon_self: dict[str, float] | None = None,
+    scene_id: str | None = None,
 ) -> list[dict]:
     """
     根据用户画像推荐教练，返回 [{"coach": Coach, "reason": str, "score": int}, ...]
-    评分逻辑（双层）：
+    评分逻辑（三层）：
     - 标签→教练直接映射（TAG_COACH_MAP）→ +5 分/匹配（精准推荐）
     - 担忧→维度→教练间接匹配（CONCERN_DIMENSION_MAP）→ +2-3 分/匹配（广度覆盖）
     - 六维自评中低于 3 分的维度 → +2 分/维度（个性化）
+    - 场景感知（NEW）：CS 场景优先追问型教练，降权同伴型教练
     """
+    is_cs = _is_cs_scene(scene_id)
     scored = []
     for coach in PRESET_COACHES:
         score = 0
@@ -254,6 +272,13 @@ def recommend_coaches(
             for dim_id in dim_ids:
                 if hexagon_self.get(dim_id, 5) < 3.0 and dim_id in coach.strengths:
                     score += 2
+
+        # 第四层：场景感知（CS 场景调整）
+        if is_cs:
+            if coach.id in CS_SCENE_BOOST:
+                score += CS_BOOST_SCORE
+            if coach.id in CS_SCENE_PENALTY:
+                score += CS_PENALTY_SCORE
 
         if score == 0:
             score = 1

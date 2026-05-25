@@ -128,19 +128,36 @@ def build_interviewer_system_prompt(
 
 def _build_compact_prompt(role: str, desc: str, hint: str, rag: str, coach: str) -> str:
     """精简 prompt —— 适合 GLM 等对长上下文中指令容易丢失的模型"""
-    # 判断场景类型来决定角色描述
+    # 判断场景类型
     is_speech = "演讲" in role or "演讲" in desc
     is_debate = "辩论" in role or "辩论" in desc
-    is_interview = not is_speech and not is_debate
+    is_code = "代码评审" in role
+    is_defense = "答辩" in role
+    is_cs_scene = is_code or is_defense
+    is_interview = not is_speech and not is_debate and not is_cs_scene
+
     if is_speech:
         scene_role_line = f"你现在是{role}，正在指导一位学员进行演讲练习。"
     elif is_debate:
         scene_role_line = f"你现在是{role}，正在和一位学员进行辩论对练。"
+    elif is_code:
+        scene_role_line = f"你现在是{role}，正在帮助一位程序员练习代码表达能力。"
+    elif is_defense:
+        scene_role_line = f"你现在是{role}，正在对一位学生的毕业设计/课程项目进行模拟答辩。"
     else:
         scene_role_line = f"你现在是{role}，正在面试一位校招候选人。"
+
     parts = [scene_role_line, f"场景：{desc}"]
+
+    # CS 场景：精简教练人格，只保留说话风格，把 context window 留给技术知识
     if coach:
-        parts.extend(["", "【你的人格——这是你最核心的设定，优先级高于一切规则】", coach])
+        if is_cs_scene:
+            # CS 场景下教练人格降为简短风格指引
+            coach_compact = _extract_speaking_style_only(coach)
+            parts.extend(["", "【你的对话风格】", coach_compact])
+        else:
+            parts.extend(["", "【你的人格——这是你最核心的设定，优先级高于一切规则】", coach])
+
     parts.extend([
         "",
         "【规则】",
@@ -148,7 +165,8 @@ def _build_compact_prompt(role: str, desc: str, hint: str, rag: str, coach: str)
         "- 对方回应后你再说话，不要连发多条",
         "- 你不是一个只会提问的机器人。你是一个教练——先教方法，再让用户练，最后点评",
     ])
-    # 面试场景：教→练→评 结构
+
+    # ── 面试场景：STAR 法则 ──
     if is_interview:
         parts.extend([
             "",
@@ -172,7 +190,8 @@ def _build_compact_prompt(role: str, desc: str, hint: str, rag: str, coach: str)
             "",
             "教学结束→自然收尾。不要在第1轮就开始追问用户的回答——先教。",
         ])
-    # 演讲场景：PREP 框架
+
+    # ── 演讲场景：PREP 框架 ──
     elif is_speech:
         parts.extend([
             "",
@@ -197,7 +216,8 @@ def _build_compact_prompt(role: str, desc: str, hint: str, rag: str, coach: str)
             "",
             "教学结束→自然收尾。第1轮先教框架，不要上来就让用户讲。",
         ])
-    # 辩论场景：ARE 框架
+
+    # ── 辩论场景：ARE 框架 ──
     elif is_debate:
         parts.extend([
             "",
@@ -220,11 +240,66 @@ def _build_compact_prompt(role: str, desc: str, hint: str, rag: str, coach: str)
             "",
             "教学结束→自然收尾。",
         ])
+
+    # ── CS 代码叙事场景 ──
+    elif is_code:
+        parts.extend([
+            "",
+            "【本次教学任务：代码表达能力】",
+            "你的教学目标是帮用户练习「用中文讲清楚代码」。这不是算法面试，不考正确答案——练的是表达清晰度。严格按照以下阶段：",
+            "",
+            "定位提醒：你的价值不是评估代码对不对，是追问「你为什么这么写」——帮用户发现他以为说清楚了但其实没说清楚的地方。",
+            "",
+            "阶段1-引导（第1轮）：",
+            "- 直接说：「你好！今天练习代码表达能力。把一段你最近写的代码贴进来，我帮你练怎么讲清楚它。」",
+            "- 如果用户不知道贴什么代码：给他几个建议方向——课程大作业的一段核心逻辑、一个你调试了很久的 bug 修复、一个你觉得写得不错的功能",
+            "",
+            "阶段2-追问（第2-4轮）：",
+            "- 用户贴了代码并做了初步解释后，从以下角度追问：",
+            "  1. 数据结构选择：为什么用这个数据结构？有没有替代方案？",
+            "  2. 边界条件：输入为空/极大值/非法值时这段代码会怎样？",
+            "  3. 时间复杂度：这个操作的复杂度是多少？有没有优化空间？",
+            "  4. 设计决策：为什么选择这个方案而不是另一个？你做过对比吗？",
+            "- 每次只问1-2个角度，等用户回答后再追问下一个",
+            "- 用户说「不知道」→不批评，引导：「没关系，很多人写代码的时候没想过这个。你觉得可以从哪个方向开始想？」",
+            "",
+            "阶段3-点评（第5轮）：",
+            "- 总结用户表达中清晰的部分和模糊的部分，各 1-2 点",
+            "- 给一个具体的改进建议：下��再写代码时可以在哪个地方多做思考",
+            "",
+        ])
+
+    # ── CS 答辩场景 ──
+    elif is_defense:
+        parts.extend([
+            "",
+            "【本次教学任务：答辩预演】",
+            "你的教学目标是帮用户在正式答辩前被追问一轮，暴露准备不足的地方。你扮演答辩评委。严格按照以下阶段：",
+            "",
+            "阶段1-引导（第1轮）：",
+            "- 直接说：「你好！今天模拟毕设/课设答辩。先用几句话描述你的项目——做了什么、用了什么技术、解决了什么问题。」",
+            "- 用户简短描述后，不要点评，直接进入追问",
+            "",
+            "阶段2-追问（第2-4轮）：",
+            "- 从以下角度层层追问，每次 1-2 个问题：",
+            "  1. 动机与问题定义：这个问题为什么值得解决？前人怎么做的？你的做法有什么不同？",
+            "  2. 技术选型：为什么选这个语言/框架/工具？对比过其他方案吗？你的选择标准是什么？",
+            "  3. 方法与实现：最核心的算法/逻辑是什么？有没有简化或假设？这些假设合理吗？",
+            "  4. 评估与局限：你怎么验证效果好不好的？有哪些情况你的方案处理不了？如果重来一次你会改什么？",
+            "- 追问要尖锐但不要恶意——你的目的是帮用户准备，不是刁难",
+            "- 如果用户卡住了：「没关系，答辩中也可能被问到这个问题。你现在想一下，如果被问到你会怎么回答？」",
+            "",
+            "阶段3-点评（第5轮）：",
+            "- 总结：用户回答最有力的1-2个点，最薄弱的1-2个点",
+            "- 给一个答辩前的准备建议",
+            "",
+        ])
     else:
         parts.extend([
             "- 追问可以，但你也要给干货——每问2-3次至少分享一次你的观察或建议",
             "- 对话5-6轮后，主动收尾：简短总结你观察到的1-2个亮点或可改进的点，然后说「这次练习到这里，去看看你的评估报告吧」",
         ])
+
     parts.extend([
         "- 必须指出问题。不批评=失职",
         "- 绝对不要替用户写完整句子、段落或演讲稿。你是教练不是代笔。用户说「你帮我写」→拒绝并引导他自己说",
@@ -243,8 +318,22 @@ def _build_compact_prompt(role: str, desc: str, hint: str, rag: str, coach: str)
     return "\n".join(parts)
 
 
+def _extract_speaking_style_only(coach_context: str) -> str:
+    """从教练完整人格中提取说话风格部分，用于 CS 场景精简注入"""
+    # 尝试提取「说话风格」段落
+    match = re.search(r"【说话风格】(.*?)(?:\n\n|\Z)", coach_context, re.DOTALL)
+    if match:
+        style = match.group(1).strip()
+        if style:
+            return f"保持以下说话风格，但不要把精力花在扮演人设上——专注技术追问：\n{style}"
+    # fallback: 取最后两句话作为风格
+    lines = [l.strip() for l in coach_context.split("\n") if l.strip()]
+    return "\n".join(lines[-2:]) if len(lines) >= 2 else coach_context[:200]
+
+
 def _build_xml_prompt(role: str, desc: str, hint: str, rag: str, coach: str) -> str:
     """XML 结构化 prompt —— Anthropic 最佳实践，适合 Claude/GPT"""
+    is_cs = "代码评审" in role or "答辩" in role
     parts = [
         "<role>",
         f"你是{role}，正在对一位校招候选人进行真实的模拟面试。",
@@ -252,7 +341,11 @@ def _build_xml_prompt(role: str, desc: str, hint: str, rag: str, coach: str) -> 
         "</role>",
     ]
     if coach:
-        parts.extend(["", "<persona>", coach, "</persona>"])
+        if is_cs:
+            coach_compact = _extract_speaking_style_only(coach)
+            parts.extend(["", "<style>", coach_compact, "</style>"])
+        else:
+            parts.extend(["", "<persona>", coach, "</persona>"])
     parts.extend([
         "",
         "<behavior_rules>",

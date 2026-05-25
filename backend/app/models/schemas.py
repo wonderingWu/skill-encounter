@@ -9,6 +9,7 @@ class SceneCategory(str, Enum):
     SPEECH = "speech"             # 即兴演讲
     DEBATE = "debate"             # 即兴辩论
     NEGOTIATION = "negotiation"   # 谈判模拟
+    PRESENTATION = "presentation" # 答辩/代码展示
 
 
 class Difficulty(str, Enum):
@@ -204,6 +205,7 @@ class CoachRecommendRequest(BaseModel):
     major: str = Field(default="")
     concerns: list[str] = Field(default_factory=list)
     hexagon_self: Optional[dict] = Field(default=None, description="六维自评 {expression:float,...}")
+    scene_id: Optional[str] = Field(default=None, description="场景 ID，用于 CS 场景感知推荐")
 
 
 class CoachListResponse(BaseModel):

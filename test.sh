@@ -258,6 +258,47 @@ else
     PROMPT_CHECKS_OK=false
 fi
 
+# 检查 CS 场景 branch 存在
+if grep -q "is_code.*代码评审" backend/app/services/llm.py && grep -q "is_defense.*答辩" backend/app/services/llm.py; then
+    pass "CS场景分支存在"
+else
+    fail "CS场景" "llm.py缺少is_code或is_defense检测"
+    PROMPT_CHECKS_OK=false
+fi
+
+# 检查 CS 场景教练精简注入
+if grep -q "_extract_speaking_style_only" backend/app/services/llm.py; then
+    pass "CS场景精简教练人格"
+else
+    fail "CS场景" "llm.py缺少_extract_speaking_style_only函数"
+    PROMPT_CHECKS_OK=false
+fi
+
+# ── 7. CS场景数据完整性 ──
+echo ""
+echo "📋 CS场景数据"
+HAS_CODE=$(grep -c '"code-narrative"' backend/app/data/scenes.py 2>/dev/null || echo 0)
+HAS_DEFENSE=$(grep -c '"project-defense"' backend/app/data/scenes.py 2>/dev/null || echo 0)
+if [ "$HAS_CODE" -ge 1 ]; then pass "code-narrative场景存在"; else fail "CS场景" "缺少code-narrative"; fi
+if [ "$HAS_DEFENSE" -ge 1 ]; then pass "project-defense场景存在"; else fail "CS场景" "缺少project-defense"; fi
+# 检查CS场景的cat为cs
+CS_CAT=$(grep -c 'cat="cs"' backend/app/data/scenes.py 2>/dev/null || echo 0)
+if [ "$CS_CAT" -ge 2 ]; then pass "CS场景分类正确(cat=cs)"; else fail "CS场景" "cat=cs数量不足: $CS_CAT"; fi
+
+# 检查教练推荐含场景感知逻辑
+if grep -q "_is_cs_scene" backend/app/data/coaches.py; then
+    pass "教练推荐含场景感知"
+else
+    fail "教练推荐" "缺少_is_cs_scene场景感知函数"
+fi
+
+# 检查SceneCategory含PRESENTATION
+if grep -q "PRESENTATION" backend/app/models/schemas.py; then
+    pass "SceneCategory含PRESENTATION"
+else
+    fail "SceneCategory" "缺少PRESENTATION枚举"
+fi
+
 # ── 汇总 ──
 echo ""
 echo "══════════════════════════════════════"

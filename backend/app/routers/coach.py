@@ -29,5 +29,6 @@ async def recommend_coaches_api(req: CoachRecommendRequest):
     result = recommend_coaches(
         concerns=req.concerns or [],
         hexagon_self=req.hexagon_self or None,
+        scene_id=req.scene_id,
     )
     return {"recommendations": result, "total": len(result)}

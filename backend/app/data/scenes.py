@@ -75,6 +75,31 @@ SCENES: list[Scene] = [
         interviewer_role="辩论赛对手",
         duration_minutes=15,
     ),
+    # ── CS 专项场景 ──────────────────────────
+    Scene(
+        id="code-narrative",
+        title="把你刚写的代码，用中文讲一遍",
+        emoji="💻",
+        cat="cs",
+        category=SceneCategory.PRESENTATION,
+        difficulty=Difficulty.BEGINNER,
+        description="粘贴一段你写的代码，AI教练追问你为什么这么写、边界条件考虑了吗。练的是讲清楚技术决策，不是刷算法题。",
+        tags=["代码表达", "技术沟通"],
+        interviewer_role="资深代码评审",
+        duration_minutes=15,
+    ),
+    Scene(
+        id="project-defense",
+        title="答辩前先被AI问一轮",
+        emoji="🎓",
+        cat="cs",
+        category=SceneCategory.PRESENTATION,
+        difficulty=Difficulty.INTERMEDIATE,
+        description="描述你的课程项目或毕设，AI扮演答辩评委追问技术选型、方案局限、改进方向。练完再上，心里有底。",
+        tags=["毕设答辩", "项目展示"],
+        interviewer_role="毕业设计答辩评委",
+        duration_minutes=20,
+    ),
 ]
 
 
