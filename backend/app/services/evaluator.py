@@ -196,10 +196,7 @@ def detect_patterns_used(messages: list[dict]) -> tuple[list[str], dict[str, dic
     )
     try:
         data, usage = generate_json(
-            prompt=PATTERN_DETECT_PROMPT.format(
-                conversation=conversation,
-                framework_list=framework_list,
-            ),
+            prompt=PATTERN_DETECT_PROMPT.replace("{conversation}", conversation).replace("{framework_list}", framework_list),
             temperature=0.3,
             max_tokens=1024,
         )
