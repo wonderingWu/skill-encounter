@@ -114,6 +114,9 @@ class Feedback(BaseModel):
     strengths: list[str] = Field(default_factory=list, description="亮点")
     improvements: list[str] = Field(default_factory=list, description="改进建议")
     summary: str = Field(..., description="总结评语")
+    # v4: 对话后框架发现
+    frameworks_discovered: list[str] = Field(default_factory=list, description="发现的框架名列表")
+    patterns_used: dict[str, dict] = Field(default_factory=dict, description="框架名→{explanation, evidence}")
 
 
 class FeedbackResponse(BaseModel):

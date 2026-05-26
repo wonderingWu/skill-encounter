@@ -1,9 +1,10 @@
-"""反馈评估服务 — v3: 六维度能力评分 + 差距检测
+"""反馈评估服务 — v4: 六维度能力评分 + 差距检测 + 框架发现
 
 核心改进：
 1. 六维能力评估：表达力/逻辑力/自我认知/协作力/AI素养/适应力
 2. 对话中能力差距检测（I - input差集）
 3. 用户自评 vs AI评估对比
+4. v4 新增：对话后框架发现 — 识别用户自然使用的思维框架，不给对话增加压力
 """
 
 from app.services.llm import generate_json
@@ -131,13 +132,112 @@ def detect_gaps(first_message: str) -> GapDetection:
         return GapDetection()
 
 
+# ── v4: 对话后框架发现 ──
+
+KNOWN_FRAMEWORKS = {
+    "STAR": "情境→任务→行动→结果：你讲述经历时自然地用了这个结构，先说背景再说你做了什么最后说结果。这是面试中最经典的行为面试框架。",
+    "PREP": "观点→理由→例子→回扣：你在表达观点时先亮观点、再说理由、举例子、最后回扣主题。这是即兴演讲的高效结构。",
+    "ARE": "断言→推理→证据：你在论证立场时先断言、再推理、给证据。这是结构化辩论的核心。",
+    "金字塔原理": "结论先行→分层论证：你先说了核心结论，再逐层展开论据。这是麦肯锡顾问的标准表达方式。",
+    "第一性原理": "回归基本事实：你没有接受表面的答案，而是追问最底层的原因。这是马斯克推崇的思维方法。",
+    "MECE": "不重不漏的分类：你在分析问题时，拆解的方式做到了相互独立、完全穷尽。",
+    "SCQA": "情境→冲突→问题→答案：你的讲述有故事感——先交代背景，再说矛盾，然后引出问题，最后给出方案。",
+    "SBI": "情境→行为→影响：你在给反馈时先说了具体情境，再描述行为，最后说影响。这是组织心理学中最有效的反馈模型。",
+    "对比论证": "正反对比：你通过比较两个方案的优劣来论证你的观点，这是有说服力的论证方式。",
+    "因果链": "因果推理：你的思考有明显的因果链条——因为A所以B因此C。这是逻辑严谨的标志。",
+}
+
+PATTERN_DETECT_PROMPT = """<task>
+你是思维模式分析专家。阅读以下对话记录，识别用户在表达中**自然使用**的思维框架。
+注意：你是在描述用户已经展现的模式，不是在教用户。别说「你应该学XX」，说「你刚才用了XX」。
+</task>
+
+<conversation>
+{conversation}
+</conversation>
+
+<known_frameworks>
+{framework_list}
+</known_frameworks>
+
+<rules>
+- 只列出用户**确实在对话中展现了**的框架，不要臆测
+- 每个发现的框架，引用一句用户的**原话**作为证据
+- 如果用户没有展现任何框架，返回空列表——不要编造
+- frameworks_discovered 是框架名列表，patterns_used 是框架名→{explanation, evidence}的映射
+- 最多列出3个框架，按展现清晰度排序
+</rules>
+
+<output_json>
+{{
+  "frameworks_discovered": ["STAR"],
+  "patterns_used": {{
+    "STAR": {{
+      "explanation": "你在讲社团招新经历时，先描述了当时只剩3个人的情境，然后说目标是招20人，接着具体讲了你做海报、扫楼、办体验日三步，最后给出招到73人的结果——这是典型的STAR结构。",
+      "evidence": "用户原话：'上一届走了以后只剩3个人，秋季学期要招20个新人，时间只有两周。我带着剩下的3个人设计了招新方案……最后招了73人。'"
+    }}
+  }}
+}}
+</output_json>"""
+
+
+def detect_patterns_used(messages: list[dict]) -> tuple[list[str], dict[str, dict], dict]:
+    """
+    对话后分析：识别用户自然使用的思维框架。
+    返回 (frameworks_discovered, patterns_used, token_usage)
+    - frameworks_discovered: ["STAR", "金字塔原理"]
+    - patterns_used: {"STAR": {"explanation": "...", "evidence": "..."}, ...}
+    """
+    conversation = "\n".join(
+        f"[{m['role']}]: {m['content'][:300]}" for m in messages if m['role'] != 'system'
+    )
+    framework_list = "\n".join(
+        f"- {name}: {desc[:100]}" for name, desc in KNOWN_FRAMEWORKS.items()
+    )
+    try:
+        data, usage = generate_json(
+            prompt=PATTERN_DETECT_PROMPT.format(
+                conversation=conversation,
+                framework_list=framework_list,
+            ),
+            temperature=0.3,
+            max_tokens=1024,
+        )
+        frameworks = data.get('frameworks_discovered', [])
+        patterns = data.get('patterns_used', {})
+
+        # 大小写不敏感匹配 + 过滤
+        def _match_fw(name: str) -> str | None:
+            for k in KNOWN_FRAMEWORKS:
+                if k.lower() == name.lower():
+                    return k
+            return None
+
+        frameworks = [fn for f in frameworks if (fn := _match_fw(f))]
+        patterns = {fn: v for k, v in patterns.items() if (fn := _match_fw(k))}
+
+        # 双向补全：frameworks 中有但 patterns 中缺失 → 补空
+        for f in frameworks:
+            if f not in patterns:
+                patterns[f] = {"explanation": "", "evidence": ""}
+
+        return frameworks, patterns, usage
+    except Exception as e:
+        logger.warning(f"框架发现失败: {e}")
+        return [], [], {"input": 0, "output": 0}
+
+
+# ── 会话评估（v4 整合框架发现）──
+
 def evaluate_session(
     session_id: str, scene_title: str, messages: list[dict],
     hexagon_scores: HexagonScore | None = None,
     strengths: list[str] | None = None,
     improvements: list[str] | None = None,
 ) -> tuple[Feedback, dict]:
-    """评估会话（兼容原有4维 + 新增六维）"""
+    """评估会话（v4: 六维评分 + 框架发现）"""
+    eval_usage = {"input": 0, "output": 0}
+
     if not messages or len(messages) < 2:
         fb = Feedback(
             session_id=session_id, scene_title=scene_title,
@@ -148,10 +248,18 @@ def evaluate_session(
         )
         return fb, {"input": 0, "output": 0, "action": "evaluate_skip"}
 
-    # 生成六维评分
-    eval_usage = {"input": 0, "output": 0}
+    # 六维评分
     if hexagon_scores is None:
         hexagon_scores, _, strengths, improvements, eval_usage = evaluate_hexagon(messages)
+
+    # v4: 框架发现（对话后分析，不增加对话压力）
+    # 至少 6 条消息（3 轮用户发言）才有足够的对话内容做框架判断
+    if len(messages) >= 6:
+        frameworks, patterns, pattern_usage = detect_patterns_used(messages)
+        eval_usage["input"] += pattern_usage.get("input", 0)
+        eval_usage["output"] += pattern_usage.get("output", 0)
+    else:
+        frameworks, patterns, pattern_usage = [], [], {"input": 0, "output": 0}
 
     overall = round(sum([
         hexagon_scores.expression, hexagon_scores.logic, hexagon_scores.self_awareness,
@@ -173,7 +281,9 @@ def evaluate_session(
             for d in HEXAGON_DIMENSIONS if getattr(hexagon_scores, d['id'], 5) < 3.0
         ],
         summary=f"综合六维评分 {overall}/5。最高维度：{_top_dim(hexagon_scores)}。最需提升：{_weak_dim(hexagon_scores)}。",
-    ), {"input": eval_usage.get("input", 0), "output": eval_usage.get("output", 0), "action": "evaluate_v3"}
+        frameworks_discovered=frameworks,
+        patterns_used=patterns,
+    ), {"input": eval_usage.get("input", 0), "output": eval_usage.get("output", 0), "action": "evaluate_v4"}
 
 
 def _top_dim(s: HexagonScore) -> str:

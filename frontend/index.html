@@ -248,6 +248,10 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);-webkit-font
     <div class="feedback-card">
         <div class="fb-vs" id="fb-vs"></div>
         <div class="fb-dims" id="fb-dims"></div>
+        <div class="fb-section" id="fb-patterns-section" style="display:none;background:#f8faff;border:1.5px solid #c4d4ff;border-radius:14px;padding:16px;margin-bottom:16px">
+            <h3>🧠 你刚才无意中用到的思维框架</h3>
+            <div id="fb-patterns"></div>
+        </div>
         <div class="fb-section"><h3>✨ 做得好的</h3><ul id="fb-strengths"></ul></div>
         <div class="fb-section"><h3>🔧 可以试试</h3><ul id="fb-improvements"></ul></div>
         <div class="fb-summary" id="fb-summary"></div>
@@ -703,6 +707,18 @@ function showFeedback(fb){
         <div class="fb-dim"><div class="dn">${d.name}</div><div class="ds">${'⭐'.repeat(Math.round(d.score))}</div><div class="dc">${esc(d.comment||'')}</div></div>
     `).join('');
     document.getElementById('fb-strengths').innerHTML=fb.strengths.map(s=>`<li>${esc(s)}</li>`).join('')||'<li>继续练习，AI会给出更精准的评估</li>';
+    // After-Action Review: frameworks discovered
+    const patterns=fb.frameworks_discovered||[];
+    const ps=document.getElementById('fb-patterns-section');
+    if(patterns.length>0){
+        ps.style.display='block';
+        document.getElementById('fb-patterns').innerHTML=patterns.map(f=>{
+            const p=(fb.patterns_used&&fb.patterns_used[f])||{};
+            return `<div style="margin-bottom:12px"><div style="font-weight:700;font-size:14px">⭐ ${esc(f)}</div>
+            <div style="font-size:13px;color:var(--text2);margin:4px 0">${esc(p.explanation||'')}</div>
+            ${p.evidence?`<div style="font-size:12px;color:var(--accent);font-style:italic">💬 ${esc(p.evidence)}</div>`:''}</div>`;
+        }).join('');
+    }else{ps.style.display='none';}
     document.getElementById('fb-improvements').innerHTML=fb.improvements.map(s=>`<li>${esc(s)}</li>`).join('')||'<li>多练习几次，AI会发现你的成长空间</li>';
     document.getElementById('fb-summary').textContent=fb.summary;
 }
