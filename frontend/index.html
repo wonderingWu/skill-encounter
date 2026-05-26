@@ -382,7 +382,7 @@ async function loadProfile(){
         document.getElementById('journey-card').style.display='block';
         document.getElementById('journey-count').textContent=count;
         if(hexAI){
-            const avg=Object.values(hexAI).reduce((a,b)=>a+b,0)/6;
+            const avg=Object.values(hexAI).reduce((a,b)=>a+(isNaN(b)?0:b),0)/6;
             document.getElementById('journey-score').textContent=avg.toFixed(1);
         }
     }
@@ -696,11 +696,12 @@ async function endPractice(){
 // ═══════ FEEDBACK ═══════
 function showFeedback(fb){
     showPage('feedback');
-    const selfTotal=hexSelf?Object.values(hexSelf).reduce((a,b)=>a+b,0)/6:null;
-    const gap=selfTotal!==null?fb.overall_score-selfTotal:null;
+    const selfTotal=hexSelf?Object.values(hexSelf).reduce((a,b)=>a+(isNaN(b)?0:b),0)/6:null;
+    const gap=selfTotal!==null&&!isNaN(fb.overall_score)?fb.overall_score-selfTotal:null;
+    const safeScore=isNaN(fb.overall_score)?'--':fb.overall_score.toFixed(1);
     document.getElementById('fb-vs').innerHTML=(selfTotal!==null?`
         <div class="fb-vs-col"><div class="vs-label">📍 自评</div><div class="vs-score">${selfTotal.toFixed(1)}</div></div>
-        <div class="fb-vs-col"><div class="vs-label">🤖 AI评估</div><div class="vs-score">${fb.overall_score.toFixed(1)}</div>
+        <div class="fb-vs-col"><div class="vs-label">🤖 AI评估</div><div class="vs-score">${safeScore}</div>
         <div class="fb-vs-gap ${gap>0?'under':'over'}">${gap>0?'你低估了自己 +'+gap.toFixed(1):'你高估了自己 '+(gap).toFixed(1)}</div></div>
     `:'');
     document.getElementById('fb-dims').innerHTML=fb.dimensions.map(d=>`

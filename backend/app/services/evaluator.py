@@ -94,12 +94,12 @@ def evaluate_hexagon(messages: list[dict]) -> tuple[HexagonScore, list[str], lis
             max_tokens=1024,
         )
         scores = HexagonScore(
-            expression=float(data.get('expression', 2.5)),
-            logic=float(data.get('logic', 2.5)),
-            self_awareness=float(data.get('self_awareness', 2.5)),
-            collaboration=float(data.get('collaboration', 2.5)),
-            ai_literacy=float(data.get('ai_literacy', 2.5)),
-            adaptability=float(data.get('adaptability', 2.5)),
+            expression=float(data.get('expression', 2.5) or 2.5),
+            logic=float(data.get('logic', 2.5) or 2.5),
+            self_awareness=float(data.get('self_awareness', 2.5) or 2.5),
+            collaboration=float(data.get('collaboration', 2.5) or 2.5),
+            ai_literacy=float(data.get('ai_literacy', 2.5) or 2.5),
+            adaptability=float(data.get('adaptability', 2.5) or 2.5),
             comments=data.get('comments', {}),
         )
         gaps = data.get('gap_dimensions', [])
@@ -150,6 +150,8 @@ KNOWN_FRAMEWORKS = {
 PATTERN_DETECT_PROMPT = """<task>
 你是思维模式分析专家。阅读以下对话记录，识别用户在表达中**自然使用**的思维框架。
 注意：你是在描述用户已经展现的模式，不是在教用户。别说「你应该学XX」，说「你刚才用了XX」。
+
+**语言要求：所有输出（explanation、evidence 等）必须使用中文。框架名保留英文缩写，但解释必须中文。**
 </task>
 
 <conversation>
