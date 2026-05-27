@@ -28,6 +28,9 @@ def _check_rate(client_ip: str) -> bool:
     if len(_rate_limits[client_ip]) >= RATE_LIMIT_MAX:
         return False
     _rate_limits[client_ip].append(now)
+    # 清理空条目防止内存泄漏
+    if not _rate_limits[client_ip]:
+        del _rate_limits[client_ip]
     return True
 
 
