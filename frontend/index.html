@@ -243,8 +243,9 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);-webkit-font
     </div>
     <div class="chat-area" id="chat-area"></div>
     <div class="chat-input">
-        <textarea id="chat-input" placeholder="说说你的想法…（也可点🎤语音输入）" rows="1"></textarea>
-        <button class="btn-mic" id="btn-mic" onclick="toggleVoice()" title="语音输入">🎤</button>
+        <textarea id="chat-input" placeholder="说说你的想法…" rows="1"></textarea>
+        <button class="btn-mic" id="btn-mic" onclick="toggleVoice()" title="语音转文字">🎤</button>
+        <button class="btn-mic" id="btn-call" onclick="toggleCallMode()" title="真声练习" style="display:none">📞</button>
         <button class="btn-send" id="btn-send" onclick="sendMsg()">发送</button>
     </div>
 </div>
@@ -540,7 +541,9 @@ function selectRecommendedCoach(id){
 
 // ═══════ API ═══════
 async function api(path,opts={}){
-    const res=await fetch(path,{headers:{'Content-Type':'application/json'},...opts});
+    const isFormData=opts.body instanceof FormData;
+    const headers=isFormData?{}:{'Content-Type':'application/json'};
+    const res=await fetch(path,{headers,...opts});
     if(!res.ok){const e=await res.json().catch(()=>({detail:res.statusText}));const msg=typeof e.detail==='string'?e.detail:JSON.stringify(e.detail);throw new Error(msg);}
     return res.json();
 }
@@ -665,6 +668,10 @@ async function start(sceneId){
         document.getElementById('chat-area').innerHTML='';
         document.getElementById('chat-input').value='';
         showPage('practice');
+        // 演讲/辩论场景显示真声练习按钮
+        const callBtn=document.getElementById('btn-call');
+        callBtn.style.display=(sc?.cat==='express')?'flex':'none';
+        callBtn.classList.remove('listening');callBtn.textContent='📞';
         addMsg('assistant',data.opening_message);
     }catch(e){alert('出错了: '+e.message);}
 }
@@ -727,6 +734,67 @@ function showFeedback(fb){
     }else{ps.style.display='none';}
     document.getElementById('fb-improvements').innerHTML=fb.improvements.map(s=>`<li>${esc(s)}</li>`).join('')||'<li>多练习几次，AI会发现你的成长空间</li>';
     document.getElementById('fb-summary').textContent=fb.summary;
+}
+
+// ═══════ CALL MODE (真声练习) ═══════
+let mediaRecorder=null,callStream=null,callStartTime=0,callTranscript='';
+async function toggleCallMode(){
+    const btn=document.getElementById('btn-call');
+    if(mediaRecorder&&mediaRecorder.state==='recording'){stopCallMode();return;}
+
+    // 同时启动 Web Speech 转写 + MediaRecorder 录音
+    callTranscript='';
+    if(recognition){
+        try{recognition.abort();}catch(e){}
+        recognition.onresult=e=>{
+            let t='';for(let i=e.resultIndex;i<e.results.length;i++)t+=e.results[i][0].transcript;
+            callTranscript=t;document.getElementById('chat-input').value=t;
+        };
+        recognition.onend=()=>{}; // 不要让 onend 调用 stopListening
+        try{recognition.start();}catch(e){}
+    }
+    try{
+        callStream=await navigator.mediaDevices.getUserMedia({audio:true});
+        mediaRecorder=new MediaRecorder(callStream,{mimeType:'audio/webm'});
+        const chunks=[];
+        mediaRecorder.ondataavailable=e=>chunks.push(e.data);
+        mediaRecorder.onstop=async()=>{
+            callStream.getTracks().forEach(t=>t.stop());
+            if(recognition)try{recognition.stop();}catch(e){}
+            const blob=new Blob(chunks,{type:'audio/webm'});
+            const duration=(Date.now()-callStartTime)/1000;
+            btn.textContent='📞';btn.classList.remove('listening');
+            await analyzeCallVoice(blob,duration);
+        };
+        callStartTime=Date.now();
+        mediaRecorder.start();
+        btn.textContent='🔴';btn.classList.add('listening');
+    }catch(e){alert('麦克风权限未开启: '+e.message);}
+}
+function stopCallMode(){
+    if(mediaRecorder&&mediaRecorder.state==='recording')mediaRecorder.stop();
+}
+async function analyzeCallVoice(blob,duration){
+    const form=new FormData();
+    form.append('audio',blob,'recording.webm');
+    form.append('transcript',callTranscript||document.getElementById('chat-input').value);
+    form.append('duration',duration.toFixed(1));
+    form.append('scene_type',(state.scene&&state.scene.category==='speech')?'speech':'debate');
+    try{
+        const data=await api('/api/voice/analyze',{method:'POST',body:form,headers:{}});
+        showVoiceAnalysis(data);
+    }catch(e){alert('语音分析失败: '+e.message);}
+}
+function showVoiceAnalysis(va){
+    const area=document.getElementById('chat-area');
+    const d=document.createElement('div');d.className='msg ai';
+    d.innerHTML=`<div class="label">🎙️ 语音分析</div>
+    <div style="font-size:13px;line-height:1.6">
+    <b>${va.pace_wpm} 字/分钟</b> · ${va.duration_sec.toFixed(0)}秒 · ${va.word_count}字<br>
+    <span style="color:var(--text2)">${va.pace_feedback}</span><br><br>
+    ${esc(va.ai_analysis||'')}
+    </div>`;
+    area.appendChild(d);area.scrollTop=area.scrollHeight;
 }
 
 // ═══════ VOICE INPUT ═══════

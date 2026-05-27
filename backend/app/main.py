@@ -9,7 +9,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import HOST, PORT, PROJECT_ROOT
-from app.routers import scene, practice, coach
+from app.routers import scene, practice, coach, voice
 from app.services.rag import init_knowledge_base
 
 # 日志配置
@@ -53,6 +53,7 @@ app.add_middleware(
 app.include_router(scene.router)
 app.include_router(practice.router)
 app.include_router(coach.router)
+app.include_router(voice.router)
 
 # 健康检查
 @app.get("/api/health")

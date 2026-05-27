@@ -299,6 +299,8 @@ else
     fail "SceneCategory" "缺少PRESENTATION枚举"
 fi
 
+if grep -q "voice.router" backend/app/main.py; then pass "语音路由已注册"; else fail "语音路由" "main.py未注册voice.router"; fi
+
 # ── 汇总 ──
 echo ""
 echo "══════════════════════════════════════"

@@ -125,6 +125,19 @@ class FeedbackResponse(BaseModel):
     feedback: Feedback
 
 
+# ── 语音分析 ──────────────────────────────
+
+class VoiceAnalysisResponse(BaseModel):
+    """真声练习分析结果"""
+    transcript: str = Field(..., description="语音转写文本")
+    duration_sec: float = Field(..., description="录音时长(秒)")
+    word_count: int = Field(default=0, description="字数")
+    pace_wpm: float = Field(default=0, description="语速(字/分钟)")
+    pace_feedback: str = Field(default="", description="语速评价")
+    basic_metrics: str = Field(default="", description="基础指标摘要")
+    ai_analysis: str = Field(default="", description="LLM 语音能力分析")
+
+
 # ── 六边形能力维度 ──────────────────────────
 
 # 六大维度的标准定义
