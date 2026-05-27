@@ -159,6 +159,10 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);-webkit-font
 .chat-input textarea:focus{border-color:var(--accent)}
 .btn-send{padding:10px 22px;border-radius:22px;border:none;background:var(--accent);color:#fff;font-size:15px;font-weight:600;cursor:pointer;font-family:var(--font)}
 .btn-send:disabled{opacity:.4}
+.btn-mic{width:44px;height:44px;border-radius:22px;border:1.5px solid #d2d2d7;background:var(--card);font-size:20px;cursor:pointer;transition:.2s;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.btn-mic:hover{border-color:var(--accent)}
+.btn-mic.listening{background:var(--red);border-color:var(--red);color:#fff;animation:pulse .8s infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(255,59,48,.4)}50%{box-shadow:0 0 0 12px rgba(255,59,48,0)}}
 
 /* feedback */
 .feedback-card{background:var(--card);border-radius:var(--radius);padding:28px;box-shadow:var(--shadow)}
@@ -239,7 +243,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);-webkit-font
     </div>
     <div class="chat-area" id="chat-area"></div>
     <div class="chat-input">
-        <textarea id="chat-input" placeholder="说说你的想法…" rows="1"></textarea>
+        <textarea id="chat-input" placeholder="说说你的想法…（也可点🎤语音输入）" rows="1"></textarea>
+        <button class="btn-mic" id="btn-mic" onclick="toggleVoice()" title="语音输入">🎤</button>
         <button class="btn-send" id="btn-send" onclick="sendMsg()">发送</button>
     </div>
 </div>
@@ -724,6 +729,44 @@ function showFeedback(fb){
     document.getElementById('fb-summary').textContent=fb.summary;
 }
 
+// ═══════ VOICE INPUT ═══════
+let recognition=null,isListening=false;
+function initVoice(){
+    const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;
+    if(!SpeechRecognition){document.getElementById('btn-mic').style.display='none';return;}
+    recognition=new SpeechRecognition();
+    recognition.lang='zh-CN';
+    recognition.interimResults=true;
+    recognition.continuous=true;
+    recognition.onresult=e=>{
+        let transcript='';
+        for(let i=e.resultIndex;i<e.results.length;i++)transcript+=e.results[i][0].transcript;
+        document.getElementById('chat-input').value=transcript;
+    };
+    recognition.onerror=e=>{
+        if(e.error!=='no-speech')console.warn('语音错误:',e.error);
+        stopListening();
+    };
+    recognition.onend=()=>stopListening();
+}
+function toggleVoice(){
+    if(!recognition){alert('你的浏览器不支持语音输入，请用 Chrome 或 Edge');return;}
+    if(isListening){stopListening();return;}
+    try{
+        recognition.start();
+        isListening=true;
+        const mic=document.getElementById('btn-mic');
+        mic.textContent='🔴';mic.classList.add('listening');
+    }catch(e){alert('麦克风权限未开启，请在浏览器设置中允许');}
+}
+function stopListening(){
+    if(!isListening)return;
+    try{recognition.stop();}catch(e){}
+    isListening=false;
+    const mic=document.getElementById('btn-mic');
+    mic.textContent='🎤';mic.classList.remove('listening');
+}
+
 // ═══════ INIT ═══════
 window.onerror=function(msg,url,line){console.error('JS Error:',msg,'line',line);return false;};
 try{
@@ -733,6 +776,7 @@ document.getElementById('coach-modal').addEventListener('click',e=>{if(e.target=
 loadProfile();
 loadCoaches();
 loadScenes();
+initVoice();
 }catch(e){console.error('Init error:',e);alert('页面初始化出错: '+e.message);}
 </script>
 </body>
