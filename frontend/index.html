@@ -542,8 +542,8 @@ function selectRecommendedCoach(id){
 // ═══════ API ═══════
 async function api(path,opts={}){
     const isFormData=opts.body instanceof FormData;
-    const headers=isFormData?{}:{'Content-Type':'application/json'};
-    const res=await fetch(path,{headers,...opts});
+    const headers=isFormData?{...(opts.headers||{})}:{...opts.headers,'Content-Type':'application/json'};
+    const res=await fetch(path,{...opts,headers});
     if(!res.ok){const e=await res.json().catch(()=>({detail:res.statusText}));const msg=typeof e.detail==='string'?e.detail:JSON.stringify(e.detail);throw new Error(msg);}
     return res.json();
 }
@@ -750,17 +750,23 @@ async function toggleCallMode(){
             let t='';for(let i=e.resultIndex;i<e.results.length;i++)t+=e.results[i][0].transcript;
             callTranscript=t;document.getElementById('chat-input').value=t;
         };
-        recognition.onend=()=>{}; // 不要让 onend 调用 stopListening
+        recognition.onend=()=>{}; // 录音期间不要让 recognition 触发 stopListening
         try{recognition.start();}catch(e){}
     }
     try{
         callStream=await navigator.mediaDevices.getUserMedia({audio:true});
-        mediaRecorder=new MediaRecorder(callStream,{mimeType:'audio/webm'});
+        const mime=MediaRecorder.isTypeSupported('audio/webm;codecs=opus')?'audio/webm;codecs=opus':
+                   MediaRecorder.isTypeSupported('audio/webm')?'audio/webm':
+                   MediaRecorder.isTypeSupported('audio/mp4')?'audio/mp4':'';
+        mediaRecorder=new MediaRecorder(callStream,mime?{mimeType:mime}:{});
         const chunks=[];
         mediaRecorder.ondataavailable=e=>chunks.push(e.data);
         mediaRecorder.onstop=async()=>{
             callStream.getTracks().forEach(t=>t.stop());
-            if(recognition)try{recognition.stop();}catch(e){}
+            if(recognition){
+                try{recognition.stop();}catch(e){}
+                recognition.onend=()=>stopListening(); // 恢复原始行为
+            }
             const blob=new Blob(chunks,{type:'audio/webm'});
             const duration=(Date.now()-callStartTime)/1000;
             btn.textContent='📞';btn.classList.remove('listening');
@@ -769,21 +775,37 @@ async function toggleCallMode(){
         callStartTime=Date.now();
         mediaRecorder.start();
         btn.textContent='🔴';btn.classList.add('listening');
-    }catch(e){alert('麦克风权限未开启: '+e.message);}
+    }catch(e){
+        const msg=e.name==='NotAllowedError'?'麦克风权限未开启，请在浏览器设置中允许':
+                e.name==='NotFoundError'?'未检测到麦克风设备':
+                '无法访问麦克风: '+e.message;
+        alert(msg);
+        btn.textContent='📞';btn.classList.remove('listening');
+        return;
+    }
 }
 function stopCallMode(){
-    if(mediaRecorder&&mediaRecorder.state==='recording')mediaRecorder.stop();
+    if(mediaRecorder&&mediaRecorder.state==='recording'){
+        if(recognition){
+            recognition.onend=()=>stopListening(); // 恢复
+            try{recognition.stop();}catch(e){}
+        }
+        mediaRecorder.stop();
+    }
 }
 async function analyzeCallVoice(blob,duration){
+    const btn=document.getElementById('btn-call');
+    btn.textContent='⏳';btn.classList.add('listening');
     const form=new FormData();
     form.append('audio',blob,'recording.webm');
     form.append('transcript',callTranscript||document.getElementById('chat-input').value);
     form.append('duration',duration.toFixed(1));
     form.append('scene_type',(state.scene&&state.scene.category==='speech')?'speech':'debate');
     try{
-        const data=await api('/api/voice/analyze',{method:'POST',body:form,headers:{}});
+        const data=await api('/api/voice/analyze',{method:'POST',body:form});
         showVoiceAnalysis(data);
-    }catch(e){alert('语音分析失败: '+e.message);}
+    }catch(e){addMsg('assistant','⚠️ 语音分析失败: '+e.message);}
+    finally{btn.textContent='📞';btn.classList.remove('listening');}
 }
 function showVoiceAnalysis(va){
     const area=document.getElementById('chat-area');
